@@ -19,6 +19,7 @@
     flyTo: 'M2.5 13.5 13.5 2.5M6.5 2.5h7v7',
     release: 'M6 10 10 6M4.5 8.5 3 10a2.1 2.1 0 0 0 3 3l1.5-1.5M8.5 4.5 10 3a2.1 2.1 0 0 1 3 3l-1.5 1.5',
     restart: 'M13 8a5 5 0 1 1-1.6-3.7M13.2 2.6v3h-3',
+    snow: 'M8 1.5v13M2.4 4.75l11.2 6.5M2.4 11.25l11.2-6.5M6.3 2.6 8 4.2l1.7-1.6M6.3 13.4 8 11.8l1.7 1.6',
   } as const;
   export type IconName = keyof typeof PATHS;
 </script>

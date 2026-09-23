@@ -65,13 +65,27 @@ orrery's (see Controls).
 
 ## accretion/
 
-Movie two, inside the disk: 2600 planetesimals on
-Keplerian orbits, collisions merge (mass + momentum conserved), and
-gravitational focusing inflates big bodies' capture cross-section — so the
-big eat faster (runaway growth, the "fish game"). Only the top-12 masses
-exert body gravity (O(K·N)), enough for lane-clearing and scattering. Ends
-with a handful of planets and a leaderboard. Pure canvas 2D — the disk is
-flat, movie one proved why.
+Chapter two, inside the disk, in 3D and real units (AU, years, M☉;
+G = 4π²). About 4000 planetesimals seeded on a Minimum Mass Solar Nebula
+profile (Σ ∝ r^-1.5, ×4.2 in solids beyond the 2.7 AU snow line; rock inside,
+ice-rich outside; 8× MMSN by default, adjustable).
+
+- Gravity: the star and the ~40 most massive bodies act on everything, with
+  equal and opposite reaction; planetesimal–planetesimal gravity is neglected,
+  as in super-particle codes. Leapfrog in barycentric coordinates, dt = 1/40
+  of the innermost orbit, run in a Web Worker.
+- Collisions: swept closest approach against inflated radii (×100, shown in
+  the HUD), analytic gravitational focusing for pairs whose mutual gravity
+  isn't integrated, merging with mass and momentum conserved, and
+  fragmentation above twice the escape speed.
+- Gas: drag damps eccentricities and inclinations, the disk dissipates
+  (τ = 3 Myr of gas age), and cores past 10 M⊕ beyond the snow line accrete
+  gas at a capped Kelvin–Helmholtz rate. Gas processes run on their own clock,
+  1000 gas years per orbital year, to keep pace with the inflated-radius
+  growth; drag and gas accretion are parametrised models.
+- The HUD shows orbital time, gas age, and energy, momentum and angular
+  momentum errors after subtracting the known changes from drag, collisions,
+  gas and removals.
 
 ## Run
 
