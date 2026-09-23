@@ -1,5 +1,7 @@
 # cosmos
 
+![Saturn in 2032, rings open, with its moons](public/og.jpg)
+
 The solar system in Three.js, positions computed for real time.
 
 ## What is accurate
@@ -89,7 +91,10 @@ npm run build:web    # multi-file site for hosting
 textures inlined) that opens straight from disk, with no server or network.
 
 `npm run build:web` writes `dist/web/` with assets as separate files and
-relative paths, so it can be served from any directory.
+relative paths, so it can be served from any directory. Set `SITE_URL` (see
+`.env.example`) to the public URL before building so link previews get an
+absolute `og:image`; without it the preview tags carry only title and
+description.
 
 `npm run check` type-checks; `npm test` runs the physics tests, which compare
 positions against JPL Horizons.
