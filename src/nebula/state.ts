@@ -1,19 +1,23 @@
-/* Nebula page state: camera stores, sim parameters and the throttled readout. */
+/* Nebula page state: camera stores, initial-condition parameters and the
+   throttled physics readout. */
 import { createCameraState } from '../shared/camera';
 import { store } from '../shared/store';
+import type { CloudStats } from './physics/sim';
 
-export const camera = createCameraState('orbit', 'Protostar');
+export const camera = createCameraState('orbit', 'Cloud centre');
 export const { mode: cameraMode, flight } = camera;
 
-export const params = store({ spin0: 0.5, visc: 0.05 });
+/** Rotational and turbulent energy as fractions of |W|; typical cores: β ≈ 0.02, 1e-4–0.07. */
+export const params = store({ rotation: 0.04, turbulence: 0.08 });
 export const paused = store(matchMedia('(prefers-reduced-motion: reduce)').matches);
-export const readout = store({ time: '0,000 yr', flat: 1, core: 0, stage: 'SCENE 1 · COLD FOG, HANGING' });
+export const stats = store<CloudStats | null>(null);
+export const hasStar = store(false);
 /** Increments on each restart request. */
 export const restarts = store(0);
 
 export const actions = {
-  setSpin: (v: number) => params.update(p => ({ ...p, spin0: v })),
-  setVisc: (v: number) => params.update(p => ({ ...p, visc: v })),
+  setRotation: (v: number) => params.update(p => ({ ...p, rotation: v })),
+  setTurbulence: (v: number) => params.update(p => ({ ...p, turbulence: v })),
   togglePause: () => paused.update(p => !p),
   restart: () => restarts.update(n => n + 1),
   overview: () => camera.requestCamera('overview'),

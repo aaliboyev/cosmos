@@ -8,28 +8,54 @@
   import Instruments, { type Readout } from '../../ui/common/Instruments.svelte';
   import Slider from '../../ui/common/Slider.svelte';
   import { CHAPTER_CONTROL, chapterKey } from '../../ui/common/chapters';
-  import { deg, signed } from '../../ui/common/format';
   import { CAMERA_CONTROLS } from '../../shared/camera';
-  import { actions, camera, cameraMode, flight, params, paused, readout } from '../state';
+  import { RHO_CRIT, RHO0, R0_AU, T_FF, TEMP_K } from '../physics/units';
+  import { STAR_RADIUS_RSUN, accretionLsun, au, formatYears, msunPerYear, stageOf } from '../readout';
+  import { actions, camera, cameraMode, flight, hasStar, params, paused, stats } from '../state';
 
-  const CONTROLS = [
-    ...CAMERA_CONTROLS,
+  const controls = $derived([
+    ...CAMERA_CONTROLS
+      .filter(c => c.keys !== 'Click body' || $hasStar)
+      .map(c => (c.keys === 'Click body' ? { ...c, keys: 'Click the star' } : c)),
     { keys: 'Space', action: 'pause / resume' },
     CHAPTER_CONTROL,
     { keys: '?', action: 'this help' },
-  ];
+  ]);
 
   let help = $state(false);
 
-  const rows: Readout[] = $derived([
-    { label: 'T', value: $readout.time },
-    { label: 'FLAT', value: $readout.flat.toFixed(2) },
-    { label: 'STAR', value: Math.round($readout.core * 100) + '%' },
-    { label: 'HDG', value: deg($flight.headingDeg) + '°' },
-    { label: 'PIT', value: signed($flight.pitchDeg) + '°' },
-    { label: 'CORE', value: $flight.nearestDist.toFixed(2) + ' R₀' },
-    { label: 'MODE', value: $cameraMode === 'free' ? 'FREE' : 'ORBIT', tone: 'mode' },
-  ]);
+  const pct = (v: number) => (Math.abs(v) < 1e-4 ? '0.00' : (v * 100).toFixed(2)) + '%';
+  const SUP: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  function sci(v: number): string {
+    if (v === 0) return '0';
+    const [mant, exp] = v.toExponential(1).split('e');
+    const e = exp.replace('+', '');
+    return e === '0' ? mant : `${mant}·10${[...e].map(c => SUP[c] ?? '').join('')}`;
+  }
+
+  const rows: Readout[] = $derived.by(() => {
+    const s = $stats;
+    if (!s) return [{ label: 'T', value: '—' }];
+    const star = s.starFraction;
+    const L = accretionLsun(star, s.mdot);
+    return [
+      { label: 'T', value: formatYears(s.t) },
+      { label: 't/tff', value: (s.t / T_FF).toFixed(2) },
+      { label: 'STAR', value: s.sinks ? star.toFixed(3) + ' M☉' : '—', tone: 'name' },
+      { label: 'Ṁ', value: s.sinks ? sci(msunPerYear(s.mdot)) + ' M☉/yr' : '—' },
+      { label: 'L', value: s.sinks ? L.toFixed(L < 10 ? 1 : 0) + ' L☉' : '—' },
+      { label: 'DISK', value: s.diskRadius ? `${Math.round(au(s.diskRadius))} AU · ${s.diskMass.toFixed(2)} M☉` : '—' },
+      { label: 'FLAT', value: s.flatness.toFixed(2) },
+      { label: 'ρmax', value: sci(s.maxRho) + ' ρ₀' },
+      { label: 'ΔE', value: pct(s.energyDrift) },
+      { label: 'ΔL', value: pct(s.angMomDrift) },
+      { label: 'P', value: sci(s.momentum) },
+      { label: 'VIEW', value: Math.round($flight.nearestDist).toLocaleString('en-US') + ' AU' },
+      { label: 'MODE', value: $cameraMode === 'free' ? 'FREE' : 'ORBIT', tone: 'mode' },
+    ];
+  });
+
+  const stage = $derived($stats ? stageOf($stats, RHO_CRIT / RHO0) : '1 · COLD CORE · 1 M☉ OF GAS AT 7 K, 10,000 AU ACROSS');
 
   function onkeydown(e: KeyboardEvent) {
     const t = e.target as HTMLElement | null;
@@ -40,13 +66,17 @@
     if (e.key === ' ') { actions.togglePause(); e.preventDefault(); }
     else chapterKey(e, 'nebula');
   }
+
+  const credit = `SPH gas (barotropic: ${TEMP_K} K isothermal, stiff once opaque, soft again past H₂ dissociation), `
+    + `Barnes-Hut gravity, sink-particle stars. R₀ = ${R0_AU.toLocaleString('en-US')} AU. `
+    + `Luminosity assumes a ${STAR_RADIUS_RSUN} R☉ protostar; jets are drawn, not simulated. The sky is today's.`;
 </script>
 
 <svelte:window {onkeydown} />
 
 <Cockpit reticle={$cameraMode === 'free'} />
 <Brand sub="NEBULA" status={$paused ? 'PAUSED' : 'RUNNING'} />
-<Caption text={$readout.stage} />
+<Caption text={stage} />
 <Instruments {rows} label="Cloud instruments" throttle={$flight.throttle} onthrottle={camera.setThrottle} />
 
 <ConsoleBar chapter="nebula">
@@ -57,9 +87,9 @@
     </div>
   </section>
   <span class="sep" aria-hidden="true"></span>
-  <section aria-label="Cloud">
-    <Slider label="Initial spin" value={$params.spin0} min={0} max={0.8} oninput={actions.setSpin} />
-    <Slider label="Gas stickiness" value={$params.visc} min={0} max={0.4} oninput={actions.setVisc} />
+  <section aria-label="Initial cloud">
+    <Slider label="Rotation β" value={$params.rotation} min={0} max={0.1} step={0.005} digits={3} oninput={actions.setRotation} />
+    <Slider label="Turbulence" value={$params.turbulence} min={0} max={0.4} step={0.01} oninput={actions.setTurbulence} />
   </section>
   <span class="sep" aria-hidden="true"></span>
   <section aria-label="Camera">
@@ -73,5 +103,5 @@
 </ConsoleBar>
 
 {#if help}
-  <Help controls={CONTROLS} credit="Gravity + inelastic collisions + conserved rotation = disk. Nothing is scripted." onclose={() => (help = false)} />
+  <Help {controls} {credit} onclose={() => (help = false)} />
 {/if}

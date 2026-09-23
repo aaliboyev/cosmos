@@ -55,13 +55,35 @@ The solar system in Three.js, positions computed for real time.
 
 ## nebula/
 
-The prequel: 7000 gas particles, three rules only
-(gravity toward enclosed mass, inelastic collisions via grid-cell velocity
-mixing, a small accidental net spin). Collapse, spin-up, flattening, and the
-protostar's ignition all emerge — nothing is scripted. The star ends up with
-~80–95% of the mass, which is the honest outcome: the real Sun took 99.86%.
-Sliders for initial spin and gas stickiness; Space pauses. The camera is the
-orrery's (see Controls).
+The prequel: a 1 M☉ core, 5,000 AU in radius at 7 K, collapsing into a
+protostar and disk. The physics runs in a Web Worker:
+
+- Gas is SPH (cubic-spline kernel, ~32 neighbours) with a barotropic equation
+  of state after Bate et al. (2003). It is isothermal while it can radiate,
+  stiffens (γ = 5/3) once opaque, and softens (γ = 1.1) where H₂ dissociates.
+  Resolution compresses the transition densities to 300 and 3000 ρ₀; the real
+  values are ~1e5 and ~1e10.
+- Monaghan artificial viscosity is the only dissipation.
+- Gravity is a Barnes-Hut octree with quadrupoles (θ = 0.7), Plummer-softened.
+- Stars are sink particles. One forms where gas is past 6000 ρ₀, converging and
+  at a potential minimum. It swallows bound gas inside 80 AU and keeps mass,
+  momentum and angular momentum (orbit + spin).
+- Time uses leapfrog on power-of-two block steps with a Saitoh–Makino wake-up
+  limiter.
+- Initial conditions: a uniform sphere with k⁻⁴ solenoidal turbulence and
+  solid-body spin. The sliders set the rotational (β) and turbulent energies as
+  fractions of |W|. Changing either starts a new cloud. `?n=` sets the particle
+  count (default 8000).
+
+The HUD shows time in years (via the free-fall time), star mass, accretion
+rate, and accretion luminosity L = GMṀ/R for an assumed 2.5 R☉ protostar. It
+also shows the disk's radius and mass (gas orbiting at ≥ 70% of circular
+speed), and the drift of energy (radiated and accreted energy included),
+angular momentum and momentum.
+
+The gas is drawn as column density with dust extinction against the sky. The
+star's glow stands in for light scattered out of the unresolved inner disk.
+The jets are drawn, not simulated.
 
 ## accretion/
 

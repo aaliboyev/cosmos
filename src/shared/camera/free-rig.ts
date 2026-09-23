@@ -150,7 +150,9 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
 
   function flyTo(b: RigBody) {
     const r = b.radius();
-    const frame = b === center ? r * 6 : Math.max(r * 4.5, fitDistance(b.frameRadius?.() ?? r));
+    const frame = b === center
+      ? Math.max(r * 6, b.frameRadius ? fitDistance(b.frameRadius()) : 0)
+      : Math.max(r * 4.5, fitDistance(b.frameRadius?.() ?? r));
     const dir = tmp2;
     let upHint: Vector3 | undefined;
     if (b === center) {
