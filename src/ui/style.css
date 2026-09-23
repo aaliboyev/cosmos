@@ -1,0 +1,37 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: #05060d; }
+body { font-family: var(--sans); color: var(--text); }
+
+:root {
+    --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    --text: #e2e8f4;
+    --soft: #b4c0d8;
+    --dim: #7d8aa8;
+    --accent: #5ec8ff;
+    --accent-hi: #a8e2ff;
+    --warn: #ffaa46;
+    --warn-hi: #ffc98a;
+    --line: rgba(120, 200, 255, .16);
+    --line-hi: rgba(120, 200, 255, .38);
+    --glass: rgba(6, 12, 22, .66);
+    --glass-solid: rgba(6, 12, 22, .92);
+    --shadow: 0 10px 30px rgba(0, 0, 6, .5);
+}
+#space { position: fixed; inset: 0; display: block; }
+
+.label {
+    position: fixed; left: 0; top: 0; z-index: 5; pointer-events: auto; cursor: pointer; will-change: transform;
+    font-size: 10.5px; letter-spacing: .18em; color: rgba(200, 212, 250, .85); text-transform: uppercase;
+    text-shadow: 0 1px 6px rgba(0, 0, 10, .9); user-select: none; white-space: nowrap;
+}
+.label:hover { color: #fff; }
+.label.dwarf { color: rgba(180, 170, 210, .7); }
+.label.moon { font-size: 9.5px; letter-spacing: .14em; color: rgba(170, 180, 205, .7); }
+
+.sky-label {
+    position: fixed; left: 0; top: 0; z-index: 4; pointer-events: none; user-select: none; white-space: nowrap;
+    font-size: 9.5px; letter-spacing: .28em; text-transform: uppercase; color: rgba(120, 150, 205, .55);
+    text-shadow: 0 1px 4px rgba(0, 0, 10, .9);
+}
+.sky-label.asterism { font-size: 9px; letter-spacing: .16em; text-transform: none; font-style: italic; color: rgba(170, 195, 240, .7); }

@@ -1,0 +1,20 @@
+/** Input bindings, shown in the HUD help overlay. The rig and HUD implement these. */
+export const CONTROLS: readonly { keys: string; action: string }[] = [
+  { keys: 'Drag', action: 'look around (free) · orbit target (orbit)' },
+  { keys: 'Right-drag', action: 'pan' },
+  { keys: 'Scroll', action: 'zoom in / out' },
+  { keys: 'W / S', action: 'forward / back' },
+  { keys: 'A / D', action: 'strafe left / right' },
+  { keys: 'R / F', action: 'up / down' },
+  { keys: 'Q / E', action: 'roll' },
+  { keys: 'Shift', action: 'boost' },
+  { keys: '- / =', action: 'throttle down / up' },
+  { keys: 'Tab', action: 'switch free / orbit' },
+  { keys: 'Click body', action: 'fly to it' },
+  { keys: 'Esc · double-click', action: 'release target' },
+  { keys: 'H', action: 'return to overview' },
+  { keys: 'C', action: 'constellations' },
+  { keys: 'Space', action: 'pause / resume time' },
+  { keys: '[ / ]', action: 'slower / faster time' },
+  { keys: '?', action: 'this help' },
+];
