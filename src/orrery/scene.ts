@@ -24,6 +24,12 @@ const FRAME_EXTENT: Record<string, (p: Planet) => number> = {
   Jupiter: () => systemSpan('Jupiter', isTrueScale()) * 0.8,
 };
 
+// dimmed body colours: trails add up where helixes cross, so they start below full brightness
+const TRAIL_COLORS: Record<string, number> = {
+  Mercury: 0x8a8580, Venus: 0xc8b27a, Earth: 0x4f8fe0, Mars: 0xc0603a, Jupiter: 0xc49a6c,
+  Saturn: 0xc8b47c, Uranus: 0x7cc8cc, Neptune: 0x4f6fd8, Pluto: 0xa08c78,
+};
+
 export function startOrrery(canvas: HTMLCanvasElement): void {
   // log depth: one buffer spans a close-up of Phobos and the whole true-scale system
   const renderer = new WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
@@ -46,7 +52,7 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
   const planets = createPlanets(scene);
   const orbits = createOrbits(scene);
   const belt = createBelt(scene);
-  const trails = createTrails(scene);
+  const trails = createTrails(scene, () => renderer.getPixelRatio());
   const drift = createDrift();
 
   const rigBodies: RigBody[] = [
@@ -133,8 +139,8 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
     belt.update(time, drift.offset);
 
     if (t.drift) {
-      trails.push('Sun', 0xffb347, 0.8, drift.offset);
-      planets.list.forEach(p => trails.push(p.name, 0x7a88b8, 0.55, p.group.position));
+      trails.push('Sun', 0xffc46b, 3, drift.offset);
+      planets.list.forEach(p => trails.push(p.name, TRAIL_COLORS[p.name] ?? 0x8090c0, 1.6, p.group.position));
     }
 
     rig.update(dt, sunDelta);
