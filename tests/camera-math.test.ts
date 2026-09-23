@@ -1,6 +1,7 @@
 import { Quaternion, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
-import { attitude, farWeight, flySpeed, kmPerUnit, kmPerUnitNear, lookQuaternion, rotateLocal, sceneToAU, throttleFactor, trueDistanceKm } from '../src/orrery/camera/math';
+import { attitude, flySpeed, lookQuaternion, rotateLocal, throttleFactor } from '../src/shared/camera/math';
+import { farWeight, kmPerUnit, kmPerUnitNear, sceneToAU, trueDistanceKm } from '../src/orrery/rig-units';
 import { AU_KM } from '../src/physics/ephemeris';
 
 const fwdOf = (q: Quaternion) => new Vector3(0, 0, -1).applyQuaternion(q);

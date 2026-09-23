@@ -4,7 +4,7 @@
    Speed is shown ÷8: at true speed the pitch is ~48 AU per Earth orbit and reads
    as a straight line. */
 import { Vector3 } from 'three';
-import { SCENE_TO_GAL, apply, transpose, unit } from './sky/frames';
+import { SCENE_TO_GAL, apply, transpose, unit } from '../shared/sky/frames';
 import { AU_SCENE } from './scale';
 
 const DRIFT_AU_DAY = 0.133 / 8;

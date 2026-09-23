@@ -1,23 +1,29 @@
-<script lang="ts">
-  import { actions, cameraMode, flight } from '../orrery/state';
-  import { deg, distance, signed, speed } from './format';
+<script lang="ts" module>
+  export interface Readout { label: string; value: string; tone?: 'name' | 'mode' }
 </script>
 
-<aside class="instruments" aria-label="Flight instruments">
-  <div class="throttle">
-    <input type="range" min="0" max="1" step="0.01" value={$flight.throttle} aria-label="Throttle"
-      oninput={e => actions.setThrottle(+e.currentTarget.value)} />
-    <div class="bar" aria-hidden="true"><div class="fill" style:height="{$flight.throttle * 100}%"></div></div>
-    <span class="cap">THR</span>
-  </div>
+<script lang="ts">
+  let { rows, throttle = null, onthrottle, label = 'Flight instruments' }: {
+    rows: readonly Readout[];
+    throttle?: number | null;       // null hides the gauge
+    onthrottle?: (v: number) => void;
+    label?: string;
+  } = $props();
+</script>
+
+<aside class="instruments" aria-label={label}>
+  {#if throttle !== null}
+    <div class="throttle">
+      <input type="range" min="0" max="1" step="0.01" value={throttle} aria-label="Throttle"
+        oninput={e => onthrottle?.(+e.currentTarget.value)} />
+      <div class="bar" aria-hidden="true"><div class="fill" style:height="{throttle * 100}%"></div></div>
+      <span class="cap">THR</span>
+    </div>
+  {/if}
   <dl>
-    <dt>VEL</dt><dd>{speed($flight.speedKmS)}</dd>
-    <dt>HDG</dt><dd>{deg($flight.headingDeg)}°</dd>
-    <dt>PIT</dt><dd>{signed($flight.pitchDeg)}°</dd>
-    <dt>ROL</dt><dd>{signed($flight.rollDeg)}°</dd>
-    <dt>NRST</dt><dd class="name">{$flight.nearest}</dd>
-    <dt></dt><dd>{distance($flight.nearestAU)}</dd>
-    <dt>MODE</dt><dd class="mode">{$cameraMode === 'free' ? 'FREE' : 'ORBIT'}</dd>
+    {#each rows as r}
+      <dt>{r.label}</dt><dd class={r.tone}>{r.value}</dd>
+    {/each}
   </dl>
 </aside>
 

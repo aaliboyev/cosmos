@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { actions, selected, selectedDistance } from '../orrery/state';
-  import Button from './controls/Button.svelte';
-  import Icon from './controls/Icon.svelte';
+  import { actions, selected, selectedDistance } from '../state';
+  import Button from '../../ui/common/Button.svelte';
+  import Icon from '../../ui/common/Icon.svelte';
 </script>
 
 {#if $selected}

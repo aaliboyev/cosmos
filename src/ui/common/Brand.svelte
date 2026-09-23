@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { SPEEDS, sim } from '../orrery/state';
+  let { sub, status, warn = false }: { sub: string; status: string; warn?: boolean } = $props();
 </script>
 
 <div class="brand">
   <h1>COSMOS</h1>
-  <div class="sub">SOL SYSTEM <span aria-hidden="true">·</span> <b class:rev={SPEEDS[$sim.speedIdx].mult < 0}>{SPEEDS[$sim.speedIdx].label}</b></div>
+  <div class="sub">{sub} <span aria-hidden="true">·</span> <b class:rev={warn}>{status}</b></div>
 </div>
 
 <style>

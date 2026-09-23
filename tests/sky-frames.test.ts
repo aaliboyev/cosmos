@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EQ_TO_GAL, EQ_TO_SCENE, SCENE_TO_GAL, apply, spherical, transpose, unit } from '../src/orrery/sky/frames';
+import { EQ_TO_GAL, EQ_TO_SCENE, SCENE_TO_GAL, apply, spherical, transpose, unit } from '../src/shared/sky/frames';
 
 const angle = (a: number[], b: number[]) =>
   Math.acos(Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2])) * 180 / Math.PI;

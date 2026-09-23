@@ -5,11 +5,21 @@ import {
   AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, Color, DataTexture, Matrix3, Mesh, PlaneGeometry, Points,
   RepeatWrapping, ShaderMaterial, SRGBColorSpace, Vector2, type PerspectiveCamera, type Scene,
 } from 'three';
-import milkyWayUrl from '../assets/sky/milky_way_galactic_2k.webp';
-import catalog from '../assets/sky/stars.json';
-import { EQ_TO_SCENE, SCENE_TO_PANORAMA, apply, unit } from './sky/frames';
+import milkyWayUrl from '../../assets/sky/milky_way_galactic_2k.webp';
+import catalog from '../../assets/sky/stars.json';
+import { EQ_TO_SCENE, SCENE_TO_PANORAMA, apply, unit } from './frames';
 
-export interface Sky { update(camera: PerspectiveCamera): void }
+export interface Sky {
+  update(camera: PerspectiveCamera): void;
+  /** Milky Way brightness; 0.6 is the orrery's. */
+  setPanoramaGain(gain: number): void;
+}
+
+export interface SkyOptions {
+  panorama?: boolean;
+  panoramaGain?: number;
+  stars?: boolean;
+}
 
 const MAP_WIDTH = 2048;   // star-removed glow map width
 const MAG_LIMIT = 6.5;
@@ -129,7 +139,7 @@ function pass(src: Float32Array, dst: Float32Array, w: number, h: number, horizo
   }
 }
 
-export function createSky(scene: Scene): Sky {
+export function createSky(scene: Scene, opts: SkyOptions = {}): Sky {
   // placeholder until the panorama is decoded and cleaned
   const map = new DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);
   map.needsUpdate = true;
@@ -143,7 +153,7 @@ export function createSky(scene: Scene): Sky {
     uCamRot: { value: new Matrix3() },
     uTan: { value: new Vector2(1, 1) },
     uLod: { value: 0 },
-    uGain: { value: 0.6 },
+    uGain: { value: opts.panoramaGain ?? 0.6 },
     uFloor: { value: 0.002 },
   };
   const background = new Mesh(new PlaneGeometry(2, 2), new ShaderMaterial({
@@ -152,6 +162,7 @@ export function createSky(scene: Scene): Sky {
   }));
   background.frustumCulled = false;
   background.renderOrder = -1001;
+  background.visible = opts.panorama ?? true;
   scene.add(background);
 
   const rows = catalog as [number, number, number, number][];
@@ -175,6 +186,7 @@ export function createSky(scene: Scene): Sky {
   }));
   stars.frustumCulled = false;
   stars.renderOrder = -1000;
+  stars.visible = opts.stars ?? true;
   stars.onBeforeRender = renderer => { starUniforms.uPixelRatio.value = renderer.getPixelRatio(); };
   scene.add(stars);
 
@@ -188,5 +200,8 @@ export function createSky(scene: Scene): Sky {
     bgUniforms.uLod.value = Math.max(0, Math.log2(pixelAngle / ((2 * Math.PI) / MAP_WIDTH)));
   };
 
-  return { update(camera) { camera.updateMatrixWorld(); } };
+  return {
+    update(camera) { camera.updateMatrixWorld(); },
+    setPanoramaGain(gain) { bgUniforms.uGain.value = gain; },
+  };
 }

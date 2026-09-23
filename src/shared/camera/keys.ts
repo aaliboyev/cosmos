@@ -1,5 +1,7 @@
-/** Input bindings, shown in the HUD help overlay. The rig and HUD implement these. */
-export const CONTROLS: readonly { keys: string; action: string }[] = [
+/** Camera bindings the rig implements; pages append their own for the help overlay. */
+export interface Control { keys: string; action: string }
+
+export const CAMERA_CONTROLS: readonly Control[] = [
   { keys: 'Drag', action: 'look around (free) · orbit target (orbit)' },
   { keys: 'Right-drag', action: 'pan' },
   { keys: 'Scroll', action: 'zoom in / out' },
@@ -13,8 +15,4 @@ export const CONTROLS: readonly { keys: string; action: string }[] = [
   { keys: 'Click body', action: 'fly to it' },
   { keys: 'Esc · double-click', action: 'release target' },
   { keys: 'H', action: 'return to overview' },
-  { keys: 'C', action: 'constellations' },
-  { keys: 'Space', action: 'pause / resume time' },
-  { keys: '[ / ]', action: 'slower / faster time' },
-  { keys: '?', action: 'this help' },
 ];

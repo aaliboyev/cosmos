@@ -1,6 +1,6 @@
 /* Time controls on top of SPEEDS: direction and magnitude are split so the
    console can offer reverse / pause / play plus a magnitude picker. */
-import { PAUSED_IDX, SPEEDS, actions, sim } from '../orrery/state';
+import { PAUSED_IDX, SPEEDS, actions, sim } from '../state';
 
 let lastRunning = sim.get().speedIdx === PAUSED_IDX ? 6 : sim.get().speedIdx;
 sim.subscribe(s => { if (s.speedIdx !== PAUSED_IDX) lastRunning = s.speedIdx; });

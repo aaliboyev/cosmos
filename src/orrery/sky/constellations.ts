@@ -6,7 +6,7 @@ import {
 } from 'three';
 import data from '../../assets/sky/constellations.json';
 import catalog from '../../assets/sky/stars.json';
-import { EQ_TO_SCENE, apply, unit, type V3 } from './frames';
+import { EQ_TO_SCENE, apply, unit, type V3 } from '../../shared/sky/frames';
 
 export interface Constellations {
   update(camera: PerspectiveCamera): void;

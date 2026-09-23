@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { PAUSED_IDX, SPEEDS, actions, cameraMode, sim, toggles, type Toggles } from '../orrery/state';
-  import Button from './controls/Button.svelte';
-  import Segmented from './controls/Segmented.svelte';
-  import type { IconName } from './controls/Icon.svelte';
+  import { PAUSED_IDX, SPEEDS, actions, cameraMode, sim, toggles, type Toggles } from '../state';
+  import Button from '../../ui/common/Button.svelte';
+  import ConsoleBar from '../../ui/common/ConsoleBar.svelte';
+  import Segmented from '../../ui/common/Segmented.svelte';
+  import type { IconName } from '../../ui/common/Icon.svelte';
   import { MAGNITUDES, direction, time } from './time';
 
   let { onhelp }: { onhelp: () => void } = $props();
@@ -22,7 +23,7 @@
   const stamp = $derived(new Date(Math.floor($sim.time / 60000) * 60000).toISOString());
 </script>
 
-<div class="console">
+<ConsoleBar chapter="orrery">
   <section aria-label="Time">
     <div class="cluster">
       <Button icon="reverse" label="Reverse" compact tone="warn" pressed={dir < 0} onclick={() => time.run(-1)} />
@@ -55,23 +56,9 @@
     <Button icon="overview" label="Overview" title="Overview (H)" compact onclick={actions.overview} />
     <Button icon="help" label="Controls" title="Controls (?)" compact onclick={onhelp} />
   </section>
-</div>
+</ConsoleBar>
 
 <style>
-  .console {
-    position: fixed; z-index: 10; bottom: 16px; left: 50%; transform: translateX(-50%);
-    display: flex; align-items: center; gap: 12px; padding: 9px 12px; max-width: calc(100vw - 24px);
-    background: var(--glass); border: 1px solid var(--line); border-radius: 10px;
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: var(--shadow);
-  }
-  /* notched top edge: the console reads as a dash panel, not a floating card */
-  .console::before {
-    content: ''; position: absolute; top: -1px; left: 50%; width: 120px; height: 2px;
-    transform: translateX(-50%); background: var(--accent); opacity: .6; border-radius: 2px;
-  }
-  section { display: flex; align-items: center; gap: 6px; }
-  .cluster { display: flex; gap: 3px; }
-  .sep { width: 1px; align-self: stretch; background: var(--line); }
   .clock {
     display: flex; flex-direction: column; align-items: flex-end; justify-content: center; min-width: 86px;
     font-family: var(--mono); font-variant-numeric: tabular-nums; line-height: 1.15; padding: 0 4px;
@@ -80,10 +67,4 @@
   .clock .t { font-size: 11px; color: var(--dim); }
   .clock small { font-size: 9px; margin-left: 3px; letter-spacing: .08em; }
   .clock.rev .d { color: var(--warn-hi); }
-
-  @media (max-width: 900px) {
-    .console { flex-wrap: wrap; justify-content: center; row-gap: 8px; bottom: 10px; width: max-content; }
-    section { flex-wrap: wrap; justify-content: center; row-gap: 8px; }
-    .sep { display: none; }
-  }
 </style>

@@ -60,7 +60,8 @@ The prequel: 7000 gas particles, three rules only
 mixing, a small accidental net spin). Collapse, spin-up, flattening, and the
 protostar's ignition all emerge — nothing is scripted. The star ends up with
 ~80–95% of the mass, which is the honest outcome: the real Sun took 99.86%.
-Sliders for initial spin and gas stickiness; space bar pauses.
+Sliders for initial spin and gas stickiness; Space pauses. The camera is the
+orrery's (see Controls).
 
 ## accretion/
 
@@ -116,6 +117,7 @@ positions against JPL Horizons.
 | H | return to the overview |
 | C | constellations |
 | Space · [ / ] | pause / resume · slower / faster time |
+| 1 / 2 / 3 | open the nebula, accretion or solar-system page |
 | ? | controls help |
 
 ## URL parameters

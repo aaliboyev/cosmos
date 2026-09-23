@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { CONTROLS } from '../orrery/camera/keys';
-  import Icon from './controls/Icon.svelte';
+  import type { Control } from '../../shared/camera';
+  import Icon from './Icon.svelte';
 
-  let { onclose }: { onclose: () => void } = $props();
+  let { controls, credit, onclose }: { controls: readonly Control[]; credit?: string; onclose: () => void } = $props();
 </script>
 
 <div class="scrim" role="presentation" onclick={onclose}>
@@ -13,11 +13,11 @@
       <button type="button" class="close" aria-label="Close" onclick={onclose}><Icon name="close" size={14} /></button>
     </header>
     <dl>
-      {#each CONTROLS as c}
+      {#each controls as c}
         <dt><kbd>{c.keys}</kbd></dt><dd>{c.action}</dd>
       {/each}
     </dl>
-    <p class="credit">Planet positions: Keplerian elements, J2000 + rates.</p>
+    {#if credit}<p class="credit">{credit}</p>{/if}
   </div>
 </div>
 

@@ -1,6 +1,5 @@
-/* Pure camera math: local-axis rotation, attitude readout, adaptive speed, unit conversion. */
+/* Pure camera math: local-axis rotation, attitude readout, adaptive speed. */
 import { Matrix4, Quaternion, Vector3 } from 'three';
-import { AU_KM } from '../../physics/ephemeris';
 
 const DEG = 180 / Math.PI;
 const WORLD_UP = new Vector3(0, 1, 0);
@@ -56,38 +55,3 @@ export function flySpeed(surfaceDist: number, throttle: number, boost: boolean):
 export const damp = (k: number, dt: number): number => 1 - Math.exp(-k * dt);
 
 export const easeInOutCubic = (t: number): number => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-/** Heliocentric scene distance → AU, inverting the display mapping. */
-export function sceneToAU(sceneDist: number, trueScale: boolean, auScene: number, distPow: number): number {
-  return trueScale ? sceneDist / auScene : Math.pow(sceneDist / auScene, 1 / distPow);
-}
-
-/** km per scene unit at heliocentric scene distance `sceneDist`; in compressed mode, the local radial derivative. */
-export function kmPerUnit(sceneDist: number, trueScale: boolean, auScene: number, distPow: number): number {
-  if (trueScale) return AU_KM / auScene;
-  const au = Math.max(sceneToAU(sceneDist, false, auScene, distPow), 1e-3);
-  return AU_KM / (auScene * distPow * Math.pow(au, distPow - 1));
-}
-
-/** 0 within 6 displayed radii of a body (its own km scale applies), 1 beyond 30 (the heliocentric mapping applies). */
-export function farWeight(dScene: number, rScene: number): number {
-  const x = Math.log(Math.max(dScene, 1e-12) / Math.max(rScene, 1e-12));
-  return Math.min(1, Math.max(0, (x - Math.log(6)) / (Math.log(30) - Math.log(6))));
-}
-
-const logLerp = (a: number, b: number, t: number): number =>
-  a > 0 && b > 0 ? Math.exp(Math.log(a) + (Math.log(b) - Math.log(a)) * t) : a + (b - a) * t;
-
-/**
- * km per scene unit near a body: its displayed radius stands for its real radius
- * (radii are exaggerated in compressed mode), blending out to `helioKmPerUnit` far away.
- */
-export function kmPerUnitNear(dScene: number, rScene: number, radiusKm: number, helioKmPerUnit: number): number {
-  return logLerp(radiusKm / Math.max(rScene, 1e-12), helioKmPerUnit, farWeight(dScene, rScene));
-}
-
-/** True center distance (km): body-scaled when close, `farKm` (heliocentric inverse) far away. */
-export function trueDistanceKm(dScene: number, rScene: number, radiusKm: number, farKm: number): number {
-  const nearKm = dScene * radiusKm / Math.max(rScene, 1e-12);
-  return logLerp(nearKm, farKm, farWeight(dScene, rScene));
-}

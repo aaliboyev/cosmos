@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { cameraMode } from '../orrery/state';
+  let { reticle = false }: { reticle?: boolean } = $props();
 </script>
 
 <!-- canopy: stretched to the viewport; strokes stay hairline via non-scaling-stroke -->
@@ -19,7 +19,7 @@
   </svg>
 {/each}
 
-{#if $cameraMode === 'free'}
+{#if reticle}
   <svg class="reticle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
     <circle cx="32" cy="32" r="13" fill="none" stroke-dasharray="6 5.6" />
     <path d="M32 6v10M32 48v10M6 32h10M48 32h10" />

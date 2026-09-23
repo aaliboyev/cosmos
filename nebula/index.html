@@ -1,71 +1,14 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NEBULA — how disks are born</title>
-<link rel="icon" href="data:,">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; overflow: hidden; background: #04050c; }
-  body { font-family: 'Avenir Next', 'Segoe UI', system-ui, sans-serif; color: #dfe3f0; }
-  #space { position: fixed; inset: 0; display: block; }
-
-  .hud { position: fixed; z-index: 10; }
-  .panel {
-    background: rgba(10, 14, 26, .74); border: 1px solid rgba(160, 180, 255, .16);
-    border-radius: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 10px 30px rgba(0, 0, 5, .5);
-  }
-  .top { top: 18px; left: 18px; padding: 14px 18px 12px; max-width: 320px; }
-  .top h1 { font-size: 16px; font-weight: 700; letter-spacing: .26em; }
-  .top h1 span { color: #8fa8ff; }
-  .top .line { margin-top: 6px; font-size: 12.5px; color: #9aa4c4; font-variant-numeric: tabular-nums; }
-  .top .line b { color: #dfe3f0; font-weight: 600; }
-  .stage { margin-top: 8px; font-size: 11px; letter-spacing: .18em; color: #8fa8ff; text-transform: uppercase; min-height: 14px; }
-
-  .controls {
-    bottom: 18px; left: 50%; transform: translateX(-50%); padding: 14px 18px;
-    display: flex; align-items: center; gap: 20px; flex-wrap: wrap; justify-content: center; max-width: 94vw;
-  }
-  .ctl { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
-  .ctl label { font-size: 11px; letter-spacing: .12em; color: #9aa4c4; display: flex; justify-content: space-between; }
-  .ctl label output { color: #dfe3f0; font-variant-numeric: tabular-nums; }
-  input[type="range"] { accent-color: #8fa8ff; cursor: pointer; }
-  button.restart {
-    background: rgba(143, 168, 255, .16); border: 1px solid rgba(143, 168, 255, .5); color: #cdd8ff;
-    font-family: inherit; font-size: 12.5px; font-weight: 600; letter-spacing: .06em;
-    padding: 10px 20px; border-radius: 10px; cursor: pointer; transition: background .15s ease;
-  }
-  button.restart:hover { background: rgba(143, 168, 255, .3); }
-  button.restart:focus-visible { outline: 2px solid #8fa8ff; outline-offset: 2px; }
-
-  .hint { bottom: 16px; left: 18px; font-size: 10.5px; color: #4c5578; letter-spacing: .05em; }
-  .credit { top: 18px; right: 18px; text-align: right; font-size: 10px; letter-spacing: .12em; color: #4c5578; text-transform: uppercase; line-height: 1.8; }
-</style>
-</head><body>
-
-<canvas id="space"></canvas>
-
-<div class="hud top panel">
-  <h1>N E B U L A <span>·</span></h1>
-  <div class="line">t ≈ <b id="time">0</b> · flatness <b id="flat">1.00</b></div>
-  <div class="line">star mass <b id="core">0%</b></div>
-  <div class="stage" id="stage">SCENE 1 · COLD FOG, HANGING</div>
-</div>
-
-<div class="hud controls panel">
-  <div class="ctl">
-    <label>INITIAL SPIN <output id="spinOut">0.50</output></label>
-    <input type="range" id="spin" min="0" max="80" value="50">
-  </div>
-  <div class="ctl">
-    <label>GAS STICKINESS <output id="viscOut">0.05</output></label>
-    <input type="range" id="visc" min="0" max="40" value="5">
-  </div>
-  <button class="restart" id="restart">↺ New cloud</button>
-</div>
-
-<div class="hud hint">drag orbit · scroll zoom · nothing here is scripted — the disk must earn itself</div>
-<div class="hud credit">gravity + inelastic collisions<br>+ conserved rotation = disk</div>
-
-<script type="module" src="./app.js"></script>
-</body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>COSMOS — Nebula: how disks are born</title>
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <canvas id="space"></canvas>
+  <div id="hud"></div>
+  <script type="module" src="/src/nebula/main.ts"></script>
+</body>
+</html>

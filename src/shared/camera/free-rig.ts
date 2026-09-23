@@ -3,13 +3,10 @@
    orbit, where position is derived from orientation around a pivot. While a body
    is focused the camera rides along with it in both modes. */
 import { Quaternion, Vector3, type PerspectiveCamera } from 'three';
-import { AU_SCENE, DIST_POW, isTrueScale } from '../scale';
-import { actions, cameraMode, cameraRequest, flight, toggles, type CameraMode } from '../state';
-import type { CameraRig, CameraRigOptions, RigBody } from './index';
-import { AU_KM } from '../../physics/ephemeris';
-import { attitude, damp, easeInOutCubic, flySpeed, kmPerUnit, kmPerUnitNear, lookQuaternion, rotateLocal, sceneToAU, trueDistanceKm } from './math';
+import type { CameraRig, CameraRigOptions, RigBody, RigUnits } from './index';
+import type { CameraMode } from './state';
+import { attitude, damp, easeInOutCubic, flySpeed, lookQuaternion, rotateLocal } from './math';
 
-const OVERVIEW_OFFSET = new Vector3(0, 130, 210);
 const MOVE_KEYS = 'wsadrf';
 const CLICK_SLOP_PX = 5;
 const LOOK_RATE = 1.0;        // rad per screen-height of drag, scaled by fov
@@ -18,7 +15,7 @@ const ROLL_RATE = 1.4;        // rad/s
 const COLLIDE = 1.15;         // stay outside this many radii
 const ORBIT_MIN = 1.3;
 
-type Pivot = { kind: 'target' } | { kind: 'sun' } | { kind: 'point'; p: Vector3 };
+type Pivot = { kind: 'target' } | { kind: 'center' } | { kind: 'point'; p: Vector3 };
 
 interface Transition {
   body: () => Vector3;          // live point the offsets are measured from
@@ -35,8 +32,17 @@ const isEditable = (el: EventTarget | null): boolean =>
   el instanceof HTMLElement && (el.isContentEditable || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement
     || (el instanceof HTMLInputElement && !['checkbox', 'radio', 'button', 'range'].includes(el.type)));
 
+const SCENE_UNITS: RigUnits = {
+  distance: (cam, b) => cam.distanceTo(b.position),
+  perSceneUnit: () => 1,
+};
+
 export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts: CameraRigOptions): CameraRig {
-  const sun = opts.bodies[0];
+  const { mode: cameraMode, flight, request: cameraRequest } = opts.state;
+  const units = opts.units ?? SCENE_UNITS;
+  // "center" is the page's anchor body: the Sun in the orrery, the protostar in the nebula
+  const center = opts.bodies[0];
+  const overviewOffset = opts.overview?.clone() ?? camera.position.clone().sub(center.position);
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const q = camera.quaternion;
   const pos = camera.position;
@@ -44,9 +50,9 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
   let mode: CameraMode = cameraMode.get();
   let target: RigBody | null = null;
   const prevTarget = new Vector3();
-  let pivot: Pivot = { kind: 'sun' };
+  let pivot: Pivot = { kind: 'center' };
   const pan = new Vector3();
-  let dist = pos.distanceTo(sun.position);
+  let dist = pos.distanceTo(center.position);
   let distGoal = dist;
   let transition: Transition | null = null;
   let aimOnlyName: string | null = null;
@@ -57,7 +63,7 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
   let boost = false;
   let dollyPending = 0;                   // free-mode scroll, log units, eased in over a few frames
 
-  lookQuaternion(pos, sun.position, new Vector3(0, 1, 0), q);
+  lookQuaternion(pos, center.position, new Vector3(0, 1, 0), q);
 
   // ---------- geometry helpers
   const tmp = new Vector3(), tmp2 = new Vector3(), fwd = new Vector3(), right = new Vector3(), up = new Vector3();
@@ -66,13 +72,13 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
   function pivotPos(out: Vector3): Vector3 {
     if (pivot.kind === 'target' && target) return out.copy(target.position).add(pan);
     if (pivot.kind === 'point') return out.copy(pivot.p);
-    return out.copy(sun.position).add(pan);
+    return out.copy(center.position).add(pan);
   }
   const pivotRadius = (): number =>
-    pivot.kind === 'target' && target ? target.radius() : pivot.kind === 'sun' ? sun.radius() : 0;
+    pivot.kind === 'target' && target ? target.radius() : pivot.kind === 'center' ? center.radius() : 0;
 
   function nearestBody(): { body: RigBody; surface: number } {
-    let best = opts.bodies[0], surface = Infinity;
+    let best = center, surface = Infinity;
     for (const b of opts.bodies) {
       const s = pos.distanceTo(b.position) - b.radius();
       if (s < surface) { surface = s; best = b; }
@@ -133,7 +139,7 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
     setMode('orbit');
   }
 
-  const poleV = new Vector3(), sunDir = new Vector3(), horiz = new Vector3();
+  const poleV = new Vector3(), lightDir = new Vector3(), horiz = new Vector3();
 
   /** Distance at which a sphere of radius `extent` fits inside the narrower half-fov with margin. */
   function fitDistance(extent: number): number {
@@ -144,22 +150,22 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
 
   function flyTo(b: RigBody) {
     const r = b.radius();
-    const frame = b === sun ? r * 6 : Math.max(r * 4.5, fitDistance(b.frameRadius?.() ?? r));
+    const frame = b === center ? r * 6 : Math.max(r * 4.5, fitDistance(b.frameRadius?.() ?? r));
     const dir = tmp2;
     let upHint: Vector3 | undefined;
-    if (b === sun) {
+    if (b === center) {
       dir.subVectors(pos, b.position);
       if (dir.lengthSq() < 1e-12) dir.set(0, 0, 1);
       dir.normalize();
       dir.y += 0.35;
       dir.normalize();
     } else {
-      // sunlit side: rotate the body→Sun line by phaseDeg about the pole, then
-      // lift above the equator on the Sun's side so rings show their lit face
+      // lit side: rotate the body→center line (the light source) by phaseDeg about the pole, then
+      // lift above the equator on the lit side so rings show their lit face
       const n = b.pole ? b.pole(poleV).normalize() : poleV.set(0, 1, 0);
-      sunDir.subVectors(sun.position, b.position).normalize();
-      const lat = Math.asin(Math.max(-1, Math.min(1, sunDir.dot(n))));
-      horiz.copy(sunDir).addScaledVector(n, -sunDir.dot(n));
+      lightDir.subVectors(center.position, b.position).normalize();
+      const lat = Math.asin(Math.max(-1, Math.min(1, lightDir.dot(n))));
+      horiz.copy(lightDir).addScaledVector(n, -lightDir.dot(n));
       if (horiz.lengthSq() < 1e-6) horiz.set(1, 0, 0).addScaledVector(n, -n.x);
       horiz.normalize().applyAxisAngle(n, (b.phaseDeg ?? 38) * Math.PI / 180);
       const elev = (lat < 0 ? -1 : 1) * Math.min(70, Math.max(18, Math.abs(lat) * 180 / Math.PI + 10)) * Math.PI / 180;
@@ -214,9 +220,9 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
     if (target) { aimAt(() => target!.position, { kind: 'target' }); return; }
     const pick = pickAhead();
     if (pick) {
-      if (pick === sun) { aimAt(() => sun.position, { kind: 'sun' }); return; }
+      if (pick === center) { aimAt(() => center.position, { kind: 'center' }); return; }
       aimOnlyName = pick.name;
-      actions.select(pick.name);   // → focus() aims instead of flying
+      opts.select(pick.name);   // → focus() aims instead of flying
       return;
     }
     // nothing ahead: orbit a point straight ahead, no motion needed
@@ -230,7 +236,7 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
 
   function overview() {
     pan.set(0, 0, 0);
-    startTransition(() => sun.position, OVERVIEW_OFFSET.clone(), 2.0, { kind: 'sun' }, new Vector3(0, 1, 0));
+    startTransition(() => center.position, overviewOffset.clone(), 2.0, { kind: 'center' }, new Vector3(0, 1, 0));
   }
 
   const unsubMode = cameraMode.subscribe(m => {
@@ -253,13 +259,7 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
     if (r.kind === 'focus' && target) flyTo(target);
   });
 
-  let prevTrue = toggles.get().trueScale;
-  let refocusPending = false;   // radii change on the next frame; reframe after that
-  const unsubToggles = toggles.subscribe(t => {
-    if (t.trueScale === prevTrue) return;
-    prevTrue = t.trueScale;
-    if (target) refocusPending = true;
-  });
+  let refocusPending = false;   // displayed size changes on the next frame; reframe after that
 
   // ---------- input
   function onKeyDown(e: KeyboardEvent) {
@@ -273,7 +273,7 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
       return;
     }
     if (k === '-' || k === '_' || k === '=' || k === '+') {
-      actions.setThrottle(flight.get().throttle + (k === '-' || k === '_' ? -0.05 : 0.05));
+      opts.state.setThrottle(flight.get().throttle + (k === '-' || k === '_' ? -0.05 : 0.05));
       e.preventDefault();
       return;
     }
@@ -286,9 +286,10 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
     } else if (k === 'escape') {
       cancelTransition();
       pan.set(0, 0, 0);
-      actions.release();
+      opts.select(null);
     } else if (k === 'h') {
-      actions.overview();
+      opts.select(null);
+      overview();
     }
   }
   function onKeyUp(e: KeyboardEvent) {
@@ -387,7 +388,7 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
     if (dom.hasPointerCapture(e.pointerId)) dom.releasePointerCapture(e.pointerId);
     if (pointers.size === 0 && e.type === 'pointerup') {
       if (moved <= CLICK_SLOP_PX && e.button === 0) {
-        opts.onClick((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+        opts.onClick?.((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
       } else if (button === 0 && performance.now() - lastMoveAt < 60) {
         angVel.copy(dragVel).multiplyScalar(0.6);   // coast
       }
@@ -407,7 +408,7 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
     else dollyPending += logZoom;
   }
 
-  const onDblClick = (e: MouseEvent) => opts.onDoubleClick((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  const onDblClick = (e: MouseEvent) => opts.onDoubleClick?.((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   const onContextMenu = (e: Event) => e.preventDefault();
 
   addEventListener('keydown', onKeyDown);
@@ -427,22 +428,18 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
   const frameRel = new Vector3(), prevFrameRel = new Vector3();
   let hasPrevRel = false;
 
-  /** Body nearest in true distance, and that distance in km. */
-  function nearestTrue(trueScale: boolean): { body: RigBody; km: number } {
-    const camAU = tmp.subVectors(pos, sun.position);
-    camAU.setLength(sceneToAU(camAU.length(), trueScale, AU_SCENE, DIST_POW));
-    let best = sun, bestKm = Infinity;
+  /** Body nearest in page units, and that distance. */
+  function nearestTrue(): { body: RigBody; dist: number } {
+    let best = center, bestD = Infinity;
     for (const b of opts.bodies) {
-      const bAU = tmp2.subVectors(b.position, sun.position);
-      bAU.setLength(sceneToAU(bAU.length(), trueScale, AU_SCENE, DIST_POW));
-      const km = trueDistanceKm(pos.distanceTo(b.position), b.radius(), b.radiusKm, camAU.distanceTo(bAU) * AU_KM);
-      if (km < bestKm) { bestKm = km; best = b; }
+      const d = units.distance(pos, b);
+      if (d < bestD) { bestD = d; best = b; }
     }
-    return { body: best, km: bestKm };
+    return { body: best, dist: bestD };
   }
 
   function writeFlight(dt: number) {
-    const anchor = target ? target.position : sun.position;
+    const anchor = target ? target.position : center.position;
     frameRel.subVectors(pos, anchor);
     if (hasPrevRel && dt > 0) speedSmooth += (frameRel.distanceTo(prevFrameRel) / dt - speedSmooth) * damp(6, dt);
     prevFrameRel.copy(frameRel);
@@ -451,29 +448,25 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
     const now = performance.now();
     if (now - readoutAt < 100) return;
     readoutAt = now;
-    const trueScale = isTrueScale();
-    const near = nearestTrue(trueScale);
-    // compressed mode: the radial mapping's local derivative far out, the body's own scale close in
-    const helioKm = kmPerUnit(pos.distanceTo(sun.position), trueScale, AU_SCENE, DIST_POW);
-    const km = kmPerUnitNear(pos.distanceTo(near.body.position), near.body.radius(), near.body.radiusKm, helioKm);
+    const near = nearestTrue();
     const att = attitude(q);
     flight.set({
-      speedKmS: speedSmooth * km, throttle: flight.get().throttle,
+      speed: speedSmooth * units.perSceneUnit(pos, near.body), throttle: flight.get().throttle,
       headingDeg: att.headingDeg, pitchDeg: att.pitchDeg, rollDeg: att.rollDeg,
-      nearest: near.body.name, nearestAU: near.km / AU_KM,
+      nearest: near.body.name, nearestDist: near.dist,
     });
   }
 
   // ---------- frame
-  function update(dt: number, sunDelta: Vector3) {
+  function update(dt: number, centerDelta: Vector3) {
     if (refocusPending && target) { refocusPending = false; flyTo(target); }
     // ride the focused body, or the drifting system
     if (target) {
       tmp.subVectors(target.position, prevTarget);
       if (!transition && mode === 'free') pos.add(tmp);
       prevTarget.copy(target.position);
-    } else if (!transition && mode === 'free') pos.add(sunDelta);
-    if (pivot.kind === 'point') pivot.p.add(sunDelta);
+    } else if (!transition && mode === 'free') pos.add(centerDelta);
+    if (pivot.kind === 'point') pivot.p.add(centerDelta);
 
     if (transition) {
       stepTransition(dt);
@@ -523,6 +516,9 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
       if (aimOnlyName === b.name) { aimOnlyName = null; aimAt(() => b.position, { kind: 'target' }); }
       else flyTo(b);
     },
+    refocus() {
+      if (target) refocusPending = true;
+    },
     release() {
       if (!target) return;
       if (transition?.pivot.kind === 'target') cancelTransition();
@@ -537,7 +533,7 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
       if (pivot.kind === 'point') pivot.p.add(d);
     },
     dispose() {
-      unsubMode(); unsubRequest(); unsubToggles();
+      unsubMode(); unsubRequest();
       removeEventListener('keydown', onKeyDown);
       removeEventListener('keyup', onKeyUp);
       removeEventListener('blur', onBlur);

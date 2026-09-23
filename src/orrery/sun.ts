@@ -2,13 +2,13 @@
    the edge) and slow-moving granulation noise, oriented and spun by its IAU pole
    and ~25.4-day equatorial rotation. It is also the scene's light. */
 import {
-  AdditiveBlending, BackSide, Matrix4, Mesh, PointLight, Quaternion, SRGBColorSpace, ShaderMaterial, SphereGeometry,
-  TextureLoader, Vector3, type Scene,
+  Matrix4, Mesh, PointLight, Quaternion, SRGBColorSpace, ShaderMaterial, SphereGeometry, TextureLoader, Vector3, type Scene,
 } from 'three';
 import { SUN } from '../data/bodies';
 import { orientation } from '../physics/rotation';
 import { isTrueScale, trueRadius } from './scale';
 import { basisToScene } from './bodies/orient';
+import { createStarHalo } from '../shared/halo';
 import sunMapUrl from '../assets/planets/sun.webp';
 
 export interface Sun {
@@ -72,46 +72,7 @@ export function createSun(scene: Scene): Sun {
   mesh.userData.body = SUN.name;
   scene.add(mesh);
 
-  // Halo from each pixel's view ray: its closest approach to the centre, in solar
-  // radii, drives the falloff. A billboard can't match the sphere's perspective
-  // stretch near the screen edge; this stays centred at any angle and distance.
-  const HALO_R = 16;
-  const haloUniforms = { uCenter: { value: new Vector3() }, uRadius: { value: 1 } };
-  const halo = new Mesh(new SphereGeometry(1, 48, 24), new ShaderMaterial({
-    uniforms: haloUniforms,
-    side: BackSide, transparent: true, depthWrite: false, blending: AdditiveBlending,
-    vertexShader: /* glsl */`
-      #include <common>
-      #include <logdepthbuf_pars_vertex>
-      varying vec3 vWorld;
-      void main() {
-        vec4 w = modelMatrix * vec4(position, 1.0);
-        vWorld = w.xyz;
-        gl_Position = projectionMatrix * viewMatrix * w;
-        #include <logdepthbuf_vertex>
-      }`,
-    fragmentShader: /* glsl */`
-      #include <common>
-      #include <logdepthbuf_pars_fragment>
-      uniform vec3 uCenter;
-      uniform float uRadius;
-      varying vec3 vWorld;
-      void main() {
-        #include <logdepthbuf_fragment>
-        vec3 d = normalize(vWorld - cameraPosition);
-        vec3 oc = uCenter - cameraPosition;
-        float x = length(oc - d * max(dot(oc, d), 0.0)) / uRadius;
-        // bright inner glow hugging the limb plus a faint wide corona; x < 1 is behind the disk
-        float h = max(x - 1.0, 0.0);
-        float glow = 0.75 * exp(-h * 2.6);
-        float corona = 0.07 * exp(-h * 0.5);
-        vec3 col = mix(vec3(1.0, 0.72, 0.42), vec3(1.0, 0.95, 0.85), glow / (glow + corona + 1e-4));
-        gl_FragColor = vec4(col, clamp(glow + corona, 0.0, 1.0));
-        #include <colorspace_fragment>
-      }`,
-  }));
-  halo.renderOrder = 1;
-  scene.add(halo);
+  const halo = createStarHalo(scene);
 
   // decay 0: the light carries to Neptune undimmed, like the original look
   const light = new PointLight(0xfff2dd, 2.4 * Math.PI, 0, 0);
@@ -130,10 +91,7 @@ export function createSun(scene: Scene): Sun {
     update(position, dt, speed, daysJ2000) {
       const r = isTrueScale() ? trueRadius(SUN.radiusKm) : SUN.visR;
       mesh.scale.setScalar(r);
-      halo.scale.setScalar(r * HALO_R);
-      halo.position.copy(position);
-      haloUniforms.uCenter.value.copy(position);
-      haloUniforms.uRadius.value = r;
+      halo.update(position, r);
       mesh.position.copy(position);
       light.position.copy(position);
       const o = orientation('Sun', daysJ2000);

@@ -18,6 +18,7 @@
     close: 'M4 4l8 8M12 4l-8 8',
     flyTo: 'M2.5 13.5 13.5 2.5M6.5 2.5h7v7',
     release: 'M6 10 10 6M4.5 8.5 3 10a2.1 2.1 0 0 0 3 3l1.5-1.5M8.5 4.5 10 3a2.1 2.1 0 0 1 3 3l-1.5 1.5',
+    restart: 'M13 8a5 5 0 1 1-1.6-3.7M13.2 2.6v3h-3',
   } as const;
   export type IconName = keyof typeof PATHS;
 </script>

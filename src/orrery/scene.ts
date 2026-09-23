@@ -1,20 +1,21 @@
 /* Renderer, scene assembly and the frame loop. Reads state every frame; writes
    only sim time and the selected body's live distance. */
-import { AmbientLight, PCFShadowMap, PerspectiveCamera, Raycaster, Scene, Vector2, Vector3, WebGLRenderer } from 'three';
+import { AmbientLight, PCFShadowMap, PerspectiveCamera, Raycaster, Scene, Vector2, Vector3 } from 'three';
 import { SUN } from '../data/bodies';
 import { centuries } from '../physics/time';
 import { createBelt } from './belt';
-import { createFreeRig, type RigBody } from './camera';
+import { createFreeRig, type RigBody } from '../shared/camera';
 import { createDrift } from './drift';
 import { createLabels } from './labels';
 import { createOrbits } from './orbits';
-import { createPerf } from './perf';
 import { createPlanets, type Planet } from './planets';
 import { systemSpan } from './bodies/moons';
 import { isTrueScale } from './scale';
-import { createSky } from './sky';
+import { createStage } from '../shared/renderer';
+import { createSky } from '../shared/sky/sky';
+import { orreryUnits } from './rig-units';
 import { createConstellations } from './sky/constellations';
-import { PAUSED_IDX, SPEEDS, actions, selected, selectedDistance, sim, toggles, type Toggles } from './state';
+import { PAUSED_IDX, SPEEDS, actions, camera as cameraState, selected, selectedDistance, sim, toggles, type Toggles } from './state';
 import { createSun } from './sun';
 import { createTrails } from './trails';
 
@@ -31,18 +32,14 @@ const TRAIL_COLORS: Record<string, number> = {
 };
 
 export function startOrrery(canvas: HTMLCanvasElement): void {
-  // log depth: one buffer spans a close-up of Phobos and the whole true-scale system
-  const renderer = new WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
-  // retina at 2× costs ~1.8× the fill of 1.5× for little visible gain; `?dpr=` overrides
-  const dprParam = Number(new URLSearchParams(location.search).get('dpr'));
-  renderer.setPixelRatio(dprParam > 0 ? dprParam : Math.min(devicePixelRatio, 1.5));
-  const perf = createPerf(renderer);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = PCFShadowMap;
-
   const scene = new Scene();
   const camera = new PerspectiveCamera(50, 1, 1e-5, 1e7);
   camera.position.set(0, 130, 210);
+  // log depth: one buffer spans a close-up of Phobos and the whole true-scale system
+  const stage = createStage(canvas, camera);
+  const { renderer, perf } = stage;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = PCFShadowMap;
 
   // faint neutral fill: night sides read as near-black, not blue-grey
   scene.add(new AmbientLight(0xffffff, 0.035 * Math.PI));
@@ -76,6 +73,9 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
   const moonDistKm = (name: string) => moonByName[name].distKm;
   const rig = createFreeRig(camera, renderer.domElement, {
     bodies: rigBodies,
+    state: cameraState,
+    select: actions.select,
+    units: orreryUnits(rigBodies[0]),
     onClick: (x, y) => { const name = pick(x, y); if (name) actions.focus(name); },
     onDoubleClick: (x, y) => { if (!pick(x, y)) actions.release(); },
   });
@@ -101,6 +101,7 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
     if (prevToggles && t.trueScale !== prevToggles.trueScale) {
       orbits.rebuild(centuries(sim.get().time));
       trails.clear();
+      rig.refocus();
     }
     if (prevToggles?.drift && !t.drift) {
       rig.translate(drift.offset.clone().negate());
@@ -153,19 +154,10 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
     sky.update(camera);
     constellations.update(camera);
     labels.update(camera, now);
-    perf.beforeRender();
-    renderer.render(scene, camera);
-    perf.afterRender();
+    stage.render(scene, camera);
     perf.end();
   }
 
-  function resize() {
-    renderer.setSize(innerWidth, innerHeight);
-    camera.aspect = innerWidth / innerHeight;
-    camera.updateProjectionMatrix();
-  }
-  addEventListener('resize', resize);
-  resize();
   orbits.rebuild(centuries(sim.get().time));
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) actions.setSpeed(PAUSED_IDX);
   requestAnimationFrame(frame);
