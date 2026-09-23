@@ -128,15 +128,20 @@ positions against JPL Horizons.
 - Stars: Yale Bright Star Catalogue, 5th revised ed. (Hoffleit & Warren), via
   CDS (VizieR V/50).
 - Constellation figures and names: d3-celestial by Olaf Frohn, BSD-3-Clause
-  (https://github.com/ofrohn/d3-celestial). `scripts/build-constellations.js`
+  (https://github.com/ofrohn/d3-celestial; license in `licenses/`). `scripts/build-constellations.js`
   regenerates `src/assets/sky/constellations.json` from its
   `constellations.lines.json` and `constellations.json`.
 - Planet, Sun and Moon maps: Solar System Scope (solarsystemscope.com),
   CC BY 4.0; resized and recompressed to WebP.
 - Earth: NASA Visible Earth Blue Marble; relief, specular and cloud maps from
-  the three.js examples.
+  the three.js examples (MIT).
 - Pluto: NASA/JHUAPL/SwRI New Horizons global mosaic via USGS Astrogeology
   (public domain).
 - Satellite elements and sizes: NASA/JPL-Caltech Solar System Dynamics.
 - Rotation models: IAU Working Group on Cartographic Coordinates and
   Rotational Elements (Archinal et al. 2018).
+
+## License
+
+Code is MIT (see `LICENSE`). Images and data under Credits keep their own
+licenses; CC BY 4.0 material requires the attribution above when redistributed.
