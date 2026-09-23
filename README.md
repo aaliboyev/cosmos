@@ -97,6 +97,13 @@ relative paths, so it can be served from any directory. Set `SITE_URL` (see
 absolute `og:image`; without it the preview tags carry only title and
 description.
 
+The container image serves `dist/web/` with nginx on port 8080 (`/health`
+for probes):
+
+```sh
+SITE_URL=https://example.org/ TAG=v0.1.0 docker buildx bake --push
+```
+
 `npm run check` type-checks; `npm test` runs the physics tests, which compare
 positions against JPL Horizons.
 
