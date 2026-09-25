@@ -17,6 +17,7 @@ import { createSky } from '../shared/sky/sky';
 import { orreryUnits } from './rig-units';
 import { createConstellations } from './sky/constellations';
 import { PAUSED_IDX, SPEEDS, actions, camera as cameraState, focusView, selected, selectedDistance, sim, toggles, type Toggles } from './state';
+import type { Director } from './director';
 import { createSun } from './sun';
 import { createTrails } from './trails';
 
@@ -128,12 +129,18 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
   const noDelta = new Vector3();
   let last = performance.now();
   let lastSimTime = sim.get().time;
+  const params = new URLSearchParams(location.search);
+  const scripted = import.meta.env.DEV && params.has('demo');
+  const capture = scripted && params.has('capture');
+  let director: Director | null = null;
 
-  function frame(now: number) {
-    requestAnimationFrame(frame);
+  /** `draw` false advances everything but skips drawing: a capture chunk catching up to its start. */
+  function frame(now: number, draw = true) {
+    if (!capture) requestAnimationFrame(frame);
     perf.begin(now);
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
+    director?.tick(dt);
 
     const s = sim.get();
     // a date jump (picker, Now): trails would streak across it, orbits were built for another epoch
@@ -141,7 +148,7 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
       trails.clear();
       orbits.rebuild(centuries(s.time));
     }
-    const speed = SPEEDS[s.speedIdx].mult;
+    const speed = director?.rate() ?? SPEEDS[s.speedIdx].mult;
     const time = s.time + dt * speed * 1000;
     sim.set({ ...s, time });
     lastSimTime = time;
@@ -167,20 +174,28 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
     }
 
     rig.update(dt, sunDelta);
+    director?.afterUpdate();
 
     const body = selected.get();
     if (body) selectedDistance.set(body.isSun ? '0 AU, by definition'
       : body.parent ? Math.round(moonDistKm(body.name)).toLocaleString('en-US') + ' km'
       : planets.byName[body.name].au.toFixed(3) + ' AU');
 
-    sky.update(camera);
-    constellations.update(camera);
-    labels.update(camera, now);
-    stage.render(scene, camera);
+    if (draw) {
+      sky.update(camera);
+      constellations.update(camera);
+      labels.update(camera, now);
+      stage.render(scene, camera);
+    }
     perf.end();
   }
 
   orbits.rebuild(centuries(sim.get().time));
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) actions.setSpeed(PAUSED_IDX);
-  requestAnimationFrame(frame);
+  if (scripted) {
+    void import('./director')
+      .then(m => m.startDirector({ rig, camera, bodies: rigBodies, trails, step: (dt, draw) => frame(last + dt * 1000, draw) }))
+      .then(d => { director = d; });
+  }
+  if (!capture) requestAnimationFrame(frame);
 }
