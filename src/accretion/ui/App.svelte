@@ -1,5 +1,6 @@
 <script lang="ts">
   import Brand from '../../ui/common/Brand.svelte';
+  import Credits from '../../ui/common/Credits.svelte';
   import Button from '../../ui/common/Button.svelte';
   import Caption from '../../ui/common/Caption.svelte';
   import Cockpit from '../../ui/common/Cockpit.svelte';
@@ -53,6 +54,7 @@
 
 <Cockpit reticle={$cameraMode === 'free'} />
 <Brand sub="ACCRETION" status={$paused ? 'PAUSED' : $readout.rate.toFixed(1) + ' YR/S'} />
+<Credits />
 <Caption text={$readout.stage} />
 <Instruments {rows} label="Disk instruments" throttle={$flight.throttle} onthrottle={camera.setThrottle} />
 <Leaderboard leaders={$readout.leaders} onpick={actions.focusBody} />

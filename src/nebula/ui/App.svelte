@@ -1,5 +1,6 @@
 <script lang="ts">
   import Brand from '../../ui/common/Brand.svelte';
+  import Credits from '../../ui/common/Credits.svelte';
   import Button from '../../ui/common/Button.svelte';
   import Caption from '../../ui/common/Caption.svelte';
   import Cockpit from '../../ui/common/Cockpit.svelte';
@@ -76,6 +77,7 @@
 
 <Cockpit reticle={$cameraMode === 'free'} />
 <Brand sub="NEBULA" status={$paused ? 'PAUSED' : 'RUNNING'} />
+<Credits />
 <Caption text={stage} />
 <Instruments {rows} label="Cloud instruments" throttle={$flight.throttle} onthrottle={camera.setThrottle} />
 

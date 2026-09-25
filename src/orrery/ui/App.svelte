@@ -1,5 +1,6 @@
 <script lang="ts">
   import Brand from '../../ui/common/Brand.svelte';
+  import Credits from '../../ui/common/Credits.svelte';
   import Cockpit from '../../ui/common/Cockpit.svelte';
   import Help from '../../ui/common/Help.svelte';
   import Instruments, { type Readout } from '../../ui/common/Instruments.svelte';
@@ -53,6 +54,7 @@
 
 <Cockpit reticle={$cameraMode === 'free'} />
 <Brand sub="SOL SYSTEM" status={SPEEDS[$sim.speedIdx].label} warn={SPEEDS[$sim.speedIdx].mult < 0} />
+<Credits />
 <Instruments {rows} throttle={$flight.throttle} onthrottle={actions.setThrottle} />
 <div class="rail">
   <TargetPanel />
@@ -66,7 +68,7 @@
 <style>
   /* right column: target card, then the event write-up taking what height is left */
   .rail {
-    position: fixed; z-index: 10; top: 16px; right: 16px; width: 300px; max-height: calc(100vh - 130px);
+    position: fixed; z-index: 10; top: 58px; right: 16px; width: 300px; max-height: calc(100vh - 172px);
     display: flex; flex-direction: column; gap: 10px; pointer-events: none;
   }
   .rail > :global(*) { pointer-events: auto; }

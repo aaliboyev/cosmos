@@ -25,7 +25,7 @@
 
 <style>
   .board {
-    position: fixed; z-index: 10; top: 16px; right: 16px; width: 256px; padding: 14px 16px 12px;
+    position: fixed; z-index: 10; top: 58px; right: 16px; width: 256px; padding: 14px 16px 12px;
     background: var(--glass); border: 1px solid var(--line); border-left: 2px solid var(--accent); border-radius: 10px;
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: var(--shadow);
   }
