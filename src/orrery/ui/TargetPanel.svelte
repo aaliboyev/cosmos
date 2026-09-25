@@ -32,7 +32,7 @@
 
 <style>
   .target {
-    position: fixed; z-index: 10; top: 16px; right: 16px; width: 268px; padding: 12px 16px 14px;
+    flex: none; padding: 12px 16px 14px;
     background: var(--glass); border: 1px solid var(--line); border-radius: 10px;
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: var(--shadow);
     border-left: 2px solid var(--accent);
@@ -50,7 +50,6 @@
   .note { margin-top: 10px; font-size: 12px; line-height: 1.5; color: var(--soft); font-style: italic; }
   .actions { margin-top: 12px; display: flex; gap: 6px; }
   @media (max-width: 700px) {
-    .target { top: auto; bottom: 150px; left: 10px; right: 10px; width: auto; }
     .note { display: none; }
   }
 </style>

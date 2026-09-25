@@ -148,14 +148,17 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
     return extent / Math.sin(Math.min(halfV, halfH) * 0.85);
   }
 
-  function flyTo(b: RigBody) {
+  function flyTo(b: RigBody, view?: Vector3) {
     const r = b.radius();
     const frame = b === center
       ? Math.max(r * 6, b.frameRadius ? fitDistance(b.frameRadius()) : 0)
       : Math.max(r * 4.5, fitDistance(b.frameRadius?.() ?? r));
     const dir = tmp2;
     let upHint: Vector3 | undefined;
-    if (b === center) {
+    if (view) {
+      dir.copy(view).normalize();
+      if (b.pole) upHint = b.pole(poleV).normalize().clone();
+    } else if (b === center) {
       dir.subVectors(pos, b.position);
       if (dir.lengthSq() < 1e-12) dir.set(0, 0, 1);
       dir.normalize();
@@ -510,13 +513,13 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
   return {
     camera,
     update,
-    focus(b) {
+    focus(b, view) {
       target = b;
       hasPrevRel = false;
       prevTarget.copy(b.position);
       pan.set(0, 0, 0);
       if (aimOnlyName === b.name) { aimOnlyName = null; aimAt(() => b.position, { kind: 'target' }); }
-      else flyTo(b);
+      else flyTo(b, view);
     },
     refocus() {
       if (target) refocusPending = true;

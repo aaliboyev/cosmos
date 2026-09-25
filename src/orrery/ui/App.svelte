@@ -8,6 +8,7 @@
   import { CAMERA_CONTROLS } from '../../shared/camera';
   import { AU_KM } from '../../physics/ephemeris';
   import Console from './Console.svelte';
+  import EventPanel from './EventPanel.svelte';
   import TargetPanel from './TargetPanel.svelte';
   import { SPEEDS, actions, cameraMode, flight, sim } from '../state';
   import { time } from './time';
@@ -53,8 +54,23 @@
 <Cockpit reticle={$cameraMode === 'free'} />
 <Brand sub="SOL SYSTEM" status={SPEEDS[$sim.speedIdx].label} warn={SPEEDS[$sim.speedIdx].mult < 0} />
 <Instruments {rows} throttle={$flight.throttle} onthrottle={actions.setThrottle} />
-<TargetPanel />
+<div class="rail">
+  <TargetPanel />
+  <EventPanel />
+</div>
 <Console onhelp={() => (help = true)} />
 {#if help}
   <Help controls={CONTROLS} credit="Planet positions: Keplerian elements, J2000 + rates." onclose={() => (help = false)} />
 {/if}
+
+<style>
+  /* right column: target card, then the event write-up taking what height is left */
+  .rail {
+    position: fixed; z-index: 10; top: 16px; right: 16px; width: 300px; max-height: calc(100vh - 130px);
+    display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+  }
+  .rail > :global(*) { pointer-events: auto; }
+  @media (max-width: 700px) {
+    .rail { top: auto; bottom: 150px; left: 10px; right: 10px; width: auto; max-height: 45vh; }
+  }
+</style>

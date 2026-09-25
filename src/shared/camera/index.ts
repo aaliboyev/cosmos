@@ -28,8 +28,9 @@ export interface CameraRig {
   camera: PerspectiveCamera;
   /** Per frame, after body positions are updated. `centerDelta` is the center body's displacement this frame. */
   update(dt: number, centerDelta: Vector3): void;
-  /** Fly to the body and orbit it; the camera rides along with it until released. */
-  focus(target: RigBody): void;
+  /** Fly to the body and orbit it; the camera rides along with it until released.
+      `view`: world direction body → camera to arrive from, instead of the lit-side default. */
+  focus(target: RigBody, view?: Vector3): void;
   release(): void;
   /** Reframe the focused body on the next frame (after its displayed size changed). */
   refocus(): void;

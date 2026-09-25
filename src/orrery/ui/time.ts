@@ -1,8 +1,8 @@
 /* Time controls on top of SPEEDS: direction and magnitude are split so the
    console can offer reverse / pause / play plus a magnitude picker. */
-import { PAUSED_IDX, SPEEDS, actions, sim } from '../state';
+import { PAUSED_IDX, REAL_IDX, SPEEDS, actions, sim } from '../state';
 
-let lastRunning = sim.get().speedIdx === PAUSED_IDX ? 6 : sim.get().speedIdx;
+let lastRunning = sim.get().speedIdx === PAUSED_IDX ? REAL_IDX : sim.get().speedIdx;
 sim.subscribe(s => { if (s.speedIdx !== PAUSED_IDX) lastRunning = s.speedIdx; });
 
 const indexOf = (mult: number) => SPEEDS.findIndex(s => s.mult === mult);
@@ -45,7 +45,12 @@ export const time = {
     const i = Math.max(0, Math.min(SPEEDS.length - 1, sim.get().speedIdx + delta));
     actions.setSpeed(i);
   },
+  /** Back to the present, running live. */
   now() {
-    sim.update(s => ({ ...s, time: Date.now() }));
+    sim.set({ time: Date.now(), speedIdx: REAL_IDX });
+  },
+  /** Paused at the given moment, so it can be inspected as-is. */
+  jump(ms: number) {
+    sim.set({ time: ms, speedIdx: PAUSED_IDX });
   },
 };

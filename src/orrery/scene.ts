@@ -11,12 +11,12 @@ import { createOrbits } from './orbits';
 import { createPlanets, type Planet } from './planets';
 import { createShadowCones, type ShadowBody } from './shadows';
 import { systemSpan } from './bodies/moons';
-import { isTrueScale } from './scale';
+import { eclipticToScene, isTrueScale } from './scale';
 import { createStage } from '../shared/renderer';
 import { createSky } from '../shared/sky/sky';
 import { orreryUnits } from './rig-units';
 import { createConstellations } from './sky/constellations';
-import { PAUSED_IDX, SPEEDS, actions, camera as cameraState, selected, selectedDistance, sim, toggles, type Toggles } from './state';
+import { PAUSED_IDX, SPEEDS, actions, camera as cameraState, focusView, selected, selectedDistance, sim, toggles, type Toggles } from './state';
 import { createSun } from './sun';
 import { createTrails } from './trails';
 
@@ -101,7 +101,9 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
 
   selected.subscribe(body => {
     if (!body) { rig.release(); return; }
-    rig.focus(bodyByName[body.name]);
+    const view = focusView.get();
+    focusView.set(null);
+    rig.focus(bodyByName[body.name], view ? eclipticToScene(view) : undefined);
   });
 
   let prevToggles: Toggles | null = null;
@@ -125,6 +127,7 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
 
   const noDelta = new Vector3();
   let last = performance.now();
+  let lastSimTime = sim.get().time;
 
   function frame(now: number) {
     requestAnimationFrame(frame);
@@ -133,9 +136,15 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
     last = now;
 
     const s = sim.get();
+    // a date jump (picker, Now): trails would streak across it, orbits were built for another epoch
+    if (Math.abs(s.time - lastSimTime) > 86400000) {
+      trails.clear();
+      orbits.rebuild(centuries(s.time));
+    }
     const speed = SPEEDS[s.speedIdx].mult;
     const time = s.time + dt * speed * 1000;
     sim.set({ ...s, time });
+    lastSimTime = time;
     const dtDays = dt * speed / 86400;
     const T = centuries(time);
     const t = toggles.get();
@@ -150,6 +159,7 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
     orbits.group.position.copy(drift.offset);
     planets.update({ T, time, dt, dtDays, speed, sunPos: drift.offset, camera });
     belt.update(time, drift.offset);
+    shadows.update(t.shadows && t.trueScale, drift.offset, shadowBodies);
 
     if (t.drift) {
       trails.push('Sun', 0xffc46b, 3, drift.offset);
@@ -159,7 +169,6 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
     rig.update(dt, sunDelta);
 
     const body = selected.get();
-    shadows.update(t.shadows && t.trueScale, drift.offset, shadowBodies);
     if (body) selectedDistance.set(body.isSun ? '0 AU, by definition'
       : body.parent ? Math.round(moonDistKm(body.name)).toLocaleString('en-US') + ' km'
       : planets.byName[body.name].au.toFixed(3) + ' AU');
