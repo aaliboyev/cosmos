@@ -15,6 +15,7 @@
     { key: 'constellations', label: 'Constellations', icon: 'constellations' },
     { key: 'trueScale', label: 'True scale', icon: 'trueScale' },
     { key: 'drift', label: 'Galactic drift ÷8', icon: 'drift' },
+    { key: 'shadows', label: 'Shadow cones (true scale)', icon: 'shadows' },
   ];
 
   const dir = $derived(direction($sim.speedIdx));

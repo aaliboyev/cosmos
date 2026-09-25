@@ -18,11 +18,11 @@ export const SPEEDS: readonly { label: string; mult: number }[] = [
 ];
 export const PAUSED_IDX = 2;
 
-export interface Toggles { orbits: boolean; labels: boolean; trueScale: boolean; drift: boolean; belts: boolean; constellations: boolean }
+export interface Toggles { orbits: boolean; labels: boolean; trueScale: boolean; drift: boolean; belts: boolean; constellations: boolean; shadows: boolean }
 export type { CameraMode } from '../shared/camera';
 
 export const sim = store({ time: Date.now(), speedIdx: 6 });
-export const toggles = store<Toggles>({ orbits: true, labels: true, trueScale: false, drift: false, belts: true, constellations: false });
+export const toggles = store<Toggles>({ orbits: true, labels: true, trueScale: false, drift: false, belts: true, constellations: false, shadows: false });
 export const selected = store<BodyInfo | null>(null);
 export const selectedDistance = store('—');
 export const camera = createCameraState('orbit', 'Sun');

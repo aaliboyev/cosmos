@@ -9,6 +9,7 @@ import { createDrift } from './drift';
 import { createLabels } from './labels';
 import { createOrbits } from './orbits';
 import { createPlanets, type Planet } from './planets';
+import { createShadowCones, type ShadowBody } from './shadows';
 import { systemSpan } from './bodies/moons';
 import { isTrueScale } from './scale';
 import { createStage } from '../shared/renderer';
@@ -49,6 +50,19 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
   const belt = createBelt(scene);
   const trails = createTrails(scene, () => renderer.getPixelRatio());
   const drift = createDrift();
+  const shadows = createShadowCones(scene);
+  const shadowBodies: ShadowBody[] = [
+    ...planets.list.map(p => ({
+      position: p.group.position,
+      get radius() { return p.mesh.scale.x; },
+      get reach() { return 1.15 * (p.moonSystem.spheres.length ? systemSpan(p.name, true) : 60 * p.mesh.scale.x); },
+    })),
+    ...planets.moonBodies.map(m => ({
+      position: m.world,
+      get radius() { return m.mesh.scale.x; },
+      get reach() { return 1.15 * m.mesh.position.length(); },
+    })),
+  ];
 
   const rigBodies: RigBody[] = [
     { name: 'Sun', position: sun.mesh.position, radius: () => sun.mesh.scale.x, radiusKm: SUN.radiusKm },
@@ -145,6 +159,7 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
     rig.update(dt, sunDelta);
 
     const body = selected.get();
+    shadows.update(t.shadows && t.trueScale, drift.offset, shadowBodies);
     if (body) selectedDistance.set(body.isSun ? '0 AU, by definition'
       : body.parent ? Math.round(moonDistKm(body.name)).toLocaleString('en-US') + ' km'
       : planets.byName[body.name].au.toFixed(3) + ' AU');
