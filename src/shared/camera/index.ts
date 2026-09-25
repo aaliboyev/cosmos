@@ -16,6 +16,15 @@ export interface RigBody {
   phaseDeg?: number;
 }
 
+/** Orbit-mode camera placement relative to its pivot; JSON-safe so it can be saved and replayed. */
+export interface CameraPose {
+  /** Focused body, or null for the center. */
+  target: string | null;
+  dist: number;
+  quaternion: [number, number, number, number];
+  pan: [number, number, number];
+}
+
 /** How the flight readout turns scene units into the page's units (default: scene units). */
 export interface RigUnits {
   /** Distance camera → body in page units; ranks the nearest-body readout. */
@@ -34,6 +43,13 @@ export interface CameraRig {
   release(): void;
   /** Reframe the focused body on the next frame (after its displayed size changed). */
   refocus(): void;
+  pose(): CameraPose;
+  /** Orbit at `pose`, eased over `dur` seconds from the current view; instant when 0. */
+  setPose(pose: CameraPose, dur?: number): void;
+  /** Orbit-mode rotation about the pivot, radians. */
+  orbit(yaw: number, pitch: number): void;
+  /** Orbit-mode distance to the pivot, applied without easing. */
+  setDistance(dist: number): void;
   /** Move camera and pivot rigidly by `delta` (drift reset, float rebase). */
   translate(delta: Vector3): void;
   dispose(): void;

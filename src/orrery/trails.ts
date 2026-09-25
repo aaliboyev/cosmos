@@ -26,11 +26,14 @@ export interface Trails {
   push(key: string, color: number, width: number, v: Vector3): void;
   clear(): void;
   shift(delta: Vector3): void;
+  /** Scales every trail's light, 0..1; max blending ignores opacity, so dimming is the fade. */
+  setBrightness(k: number): void;
 }
 
 /** `pixelRatio`: line widths are drawn in device pixels, so CSS widths are scaled by it. */
 export function createTrails(scene: Scene, pixelRatio: () => number): Trails {
   const trails = new Map<string, Trail>();
+  let brightness = 1;
 
   function trailFor(key: string, color: number, width: number): Trail {
     let t = trails.get(key);
@@ -45,6 +48,7 @@ export function createTrails(scene: Scene, pixelRatio: () => number): Trails {
       linewidth: width * pixelRatio(), vertexColors: true, worldUnits: false,
       transparent: true, depthWrite: false, blending: CustomBlending, blendEquation: MaxEquation,
     });
+    mat.color.setScalar(brightness);
     const line = new LineSegments2(geo, mat);
     line.frustumCulled = false;
     scene.add(line);
@@ -89,6 +93,10 @@ export function createTrails(scene: Scene, pixelRatio: () => number): Trails {
     },
     clear() {
       trails.forEach(t => { t.count = 0; t.line.geometry.instanceCount = 0; });
+    },
+    setBrightness(k) {
+      brightness = k;
+      trails.forEach(t => t.line.material.color.setScalar(k));
     },
     shift(delta) {
       trails.forEach(t => {

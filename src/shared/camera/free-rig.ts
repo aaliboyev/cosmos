@@ -3,7 +3,7 @@
    orbit, where position is derived from orientation around a pivot. While a body
    is focused the camera rides along with it in both modes. */
 import { Quaternion, Vector3, type PerspectiveCamera } from 'three';
-import type { CameraRig, CameraRigOptions, RigBody, RigUnits } from './index';
+import type { CameraPose, CameraRig, CameraRigOptions, RigBody, RigUnits } from './index';
 import type { CameraMode } from './state';
 import { attitude, damp, easeInOutCubic, flySpeed, lookQuaternion, rotateLocal } from './math';
 
@@ -26,6 +26,8 @@ interface Transition {
   t: number;
   dur: number;
   pivot: Pivot;
+  /** Exact end orientation, pan and distance; without it the flight ends looking at the body. */
+  end?: { q: Quaternion; pan: Vector3; dist: number };
 }
 
 const isEditable = (el: EventTarget | null): boolean =>
@@ -191,8 +193,8 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
   function finishTransition(tr: Transition) {
     transition = null;
     pivot = tr.pivot;
-    dist = distGoal = tr.toOffset.length();
-    pan.set(0, 0, 0);
+    dist = distGoal = tr.end?.dist ?? tr.toOffset.length();
+    if (tr.end) pan.copy(tr.end.pan); else pan.set(0, 0, 0);
     if (target) prevTarget.copy(target.position);
   }
 
@@ -208,7 +210,7 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
     const dir = dirA.applyQuaternion(qStep.identity().slerp(qSpan, e));
     const center = tr.body();
     pos.copy(center).addScaledVector(dir, len);
-    const look = lookQuaternion(pos, center, tr.up, qLook);
+    const look = tr.end ? qLook.copy(tr.end.q) : lookQuaternion(pos, center, tr.up, qLook);
     q.slerpQuaternions(tr.fromQ, look, easeInOutCubic(Math.min(1, tr.t * 1.6)));
     if (tr.t >= 1) { q.copy(look); finishTransition(tr); }
   }
@@ -523,6 +525,46 @@ export function createFreeRig(camera: PerspectiveCamera, dom: HTMLElement, opts:
     },
     refocus() {
       if (target) refocusPending = true;
+    },
+    pose() {
+      return {
+        target: target?.name ?? null,
+        dist,
+        quaternion: [q.x, q.y, q.z, q.w],
+        pan: [pan.x, pan.y, pan.z],
+      };
+    },
+    setPose(p, dur = 0) {
+      const body = p.target ? opts.bodies.find(b => b.name === p.target) ?? null : null;
+      if (body !== target) {
+        target = body;
+        hasPrevRel = false;
+        if (body) prevTarget.copy(body.position);
+      }
+      const endQ = new Quaternion(...p.quaternion);
+      const endPan = new Vector3(...p.pan);
+      const nextPivot: Pivot = body ? { kind: 'target' } : { kind: 'center' };
+      const anchor = body ?? center;
+      if (dur > 0) {
+        const toOffset = new Vector3(0, 0, p.dist).applyQuaternion(endQ).add(endPan);
+        startTransition(() => anchor.position, toOffset, dur, nextPivot);
+        transition!.end = { q: endQ, pan: endPan, dist: p.dist };
+        return;
+      }
+      transition = null;
+      vel.set(0, 0, 0); angVel.set(0, 0, 0);
+      setMode('orbit');
+      pivot = nextPivot;
+      q.copy(endQ);
+      pan.copy(endPan);
+      dist = distGoal = p.dist;
+      pivotPos(pos).add(tmp.set(0, 0, dist).applyQuaternion(q));
+    },
+    orbit(yaw, pitch) {
+      if (mode === 'orbit' && !transition) rotateLocal(q, pitch, yaw, 0);
+    },
+    setDistance(d) {
+      dist = distGoal = d;
     },
     release() {
       if (!target) return;
