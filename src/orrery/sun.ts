@@ -73,6 +73,7 @@ export function createSun(scene: Scene): Sun {
   scene.add(mesh);
 
   const halo = createStarHalo(scene);
+  halo.setMinPixels(5);
 
   // decay 0: the light carries to Neptune undimmed, like the original look
   const light = new PointLight(0xfff2dd, 2.4 * Math.PI, 0, 0);

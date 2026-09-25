@@ -2,7 +2,7 @@
    in stellar radii, drives the falloff. A billboard can't match the sphere's
    perspective stretch near the screen edge; this stays centred at any angle and
    distance, including from inside the glow. */
-import { AdditiveBlending, BackSide, Color, Mesh, ShaderMaterial, SphereGeometry, Vector3, type Scene } from 'three';
+import { AdditiveBlending, BackSide, Color, Mesh, PerspectiveCamera, ShaderMaterial, SphereGeometry, Vector3, type Scene } from 'three';
 
 const HALO_R = 16;   // shell radius in stellar radii; the glow is negligible beyond
 
@@ -14,6 +14,8 @@ export interface StarHalo {
   setColors(inner: Color | number, outer: Color | number): void;
   /** Multiplies the whole glow; 1 is the Sun's. */
   setIntensity(k: number): void;
+  /** Smallest on-screen glow radius, px: a bright star glares however small its disk. 0 is off. */
+  setMinPixels(px: number): void;
 }
 
 export function createStarHalo(scene: Scene): StarHalo {
@@ -61,20 +63,37 @@ export function createStarHalo(scene: Scene): StarHalo {
       }`,
   }));
   mesh.renderOrder = 1;
+  mesh.frustumCulled = false;
   scene.add(mesh);
+
+  let radius = 1, minPx = 0;
+  const camPos = new Vector3();
+  const fit = (r: number) => {
+    mesh.scale.setScalar(r * HALO_R);
+    uniforms.uRadius.value = r;
+  };
+  // the floor depends on the viewing camera, so it is applied at draw time
+  mesh.onBeforeRender = (renderer, _scene, camera) => {
+    if (minPx <= 0 || !(camera instanceof PerspectiveCamera)) return;
+    const radPerPx = 2 * Math.tan(camera.fov * Math.PI / 360) / renderer.domElement.clientHeight;
+    const dist = camera.getWorldPosition(camPos).distanceTo(uniforms.uCenter.value);
+    fit(Math.max(radius, minPx * radPerPx * dist));
+    mesh.updateMatrixWorld();
+  };
 
   return {
     mesh,
-    update(position, radius) {
-      mesh.scale.setScalar(radius * HALO_R);
+    update(position, r) {
+      radius = r;
+      fit(r);
       mesh.position.copy(position);
       uniforms.uCenter.value.copy(position);
-      uniforms.uRadius.value = radius;
     },
     setColors(inner, outer) {
       uniforms.uInner.value.set(inner);
       uniforms.uOuter.value.set(outer);
     },
     setIntensity(k) { uniforms.uIntensity.value = k; },
+    setMinPixels(px) { minPx = px; },
   };
 }
