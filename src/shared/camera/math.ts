@@ -42,8 +42,8 @@ export function lookQuaternion(eye: Vector3, target: Vector3, up: Vector3, out =
   return out.setFromRotationMatrix(lookM);
 }
 
-/** Fraction of the surface distance covered per second: 0.25 at mid throttle, 1/64..4 over the range. */
-export const throttleFactor = (throttle: number): number => 0.25 * Math.pow(16, 2 * throttle - 1);
+/** Fraction of the surface distance covered per second: 0.35 at mid throttle, ×1/16..×16 of that over the range. */
+export const throttleFactor = (throttle: number): number => 0.35 * Math.pow(16, 2 * throttle - 1);
 
 /** Scene units/s: proportional to the distance to the nearest surface, so approach is gentle and leaving is quick. */
 export function flySpeed(surfaceDist: number, throttle: number, boost: boolean): number {

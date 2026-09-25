@@ -48,11 +48,11 @@ describe('attitude', () => {
 
 describe('flySpeed', () => {
   it('scales with distance to the surface and throttle', () => {
-    expect(flySpeed(10, 0.5, false)).toBeCloseTo(2.5);
-    expect(flySpeed(0.001, 0.5, false)).toBeCloseTo(0.00025);
-    expect(flySpeed(10, 0.5, true)).toBeCloseTo(12.5);
-    expect(throttleFactor(1)).toBeCloseTo(4);
-    expect(throttleFactor(0)).toBeCloseTo(1 / 64);
+    expect(flySpeed(10, 0.5, false)).toBeCloseTo(3.5);
+    expect(flySpeed(0.001, 0.5, false)).toBeCloseTo(0.00035);
+    expect(flySpeed(10, 0.5, true)).toBeCloseTo(17.5);
+    expect(throttleFactor(1)).toBeCloseTo(5.6);
+    expect(throttleFactor(0)).toBeCloseTo(0.35 / 16);
     expect(flySpeed(0, 0.5, false)).toBeGreaterThan(0);
     expect(flySpeed(1e9, 1, true)).toBe(50000);
   });
