@@ -29,7 +29,7 @@
   .console :global(.cluster) { display: flex; gap: 3px; }
   .console :global(.sep) { width: 1px; align-self: stretch; background: var(--line); }
 
-  @media (max-width: 1100px) {
+  @media (max-width: 1000px) {
     .console { flex-wrap: wrap; justify-content: center; row-gap: 8px; bottom: 10px; width: max-content; }
     .console :global(section) { flex-wrap: wrap; justify-content: center; row-gap: 8px; }
     .console :global(.sep) { display: none; }

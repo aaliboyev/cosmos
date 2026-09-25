@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+  import Dropdown from './Dropdown.svelte';
+
   let { options, value, label, onchange, tone = 'accent' }: {
     options: readonly { value: T; label: string; title?: string }[];
     value: T | null;
@@ -14,6 +16,7 @@
       title={o.title ?? o.label} onclick={() => onchange(o.value)}>{o.label}</button>
   {/each}
 </div>
+<span class="fold"><Dropdown {options} {value} {label} {onchange} /></span>
 
 <style>
   .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; height: 30px; }
@@ -26,6 +29,8 @@
   button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   button.on { color: var(--accent-hi); background: rgba(94, 200, 255, .16); }
   .warn button.on { color: var(--warn-hi); background: rgba(255, 170, 70, .16); }
-  @media (max-width: 480px) { button { padding: 0 6px; min-width: 30px; } }
+  .fold { display: none; }
+  /* narrow screens: folded into a dropdown (same breakpoint as the chapter switcher) */
+  @media (max-width: 1400px) { .seg { display: none; } .fold { display: inline-block; } }
   @media (prefers-reduced-motion: reduce) { button { transition: none; } }
 </style>

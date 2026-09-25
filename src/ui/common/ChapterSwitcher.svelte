@@ -1,7 +1,9 @@
 <script lang="ts">
   import { CHAPTERS, chapterHref, type ChapterId } from './chapters';
+  import Dropdown from './Dropdown.svelte';
 
   let { current }: { current: ChapterId } = $props();
+  const options = CHAPTERS.map(c => ({ value: c.id, label: c.label, hint: String(c.key) }));
 </script>
 
 <nav class="chapters" aria-label="Chapters">
@@ -10,6 +12,9 @@
       title="{c.label} ({c.key})"><span class="n">{c.key}</span>{c.label}</a>
   {/each}
 </nav>
+<span class="fold">
+  <Dropdown {options} value={current} label="Chapter" onchange={id => { location.href = chapterHref(current, id); }} />
+</span>
 
 <style>
   .chapters { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; height: 30px; }
@@ -23,5 +28,7 @@
   a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   a.on { color: var(--accent-hi); background: rgba(94, 200, 255, .16); }
   .n { font: 600 10px/1 var(--mono); color: var(--accent); opacity: .8; }
+  .fold { display: none; }
+  @media (max-width: 1400px) { .chapters { display: none; } .fold { display: inline-block; } }
   @media (prefers-reduced-motion: reduce) { a { transition: none; } }
 </style>
