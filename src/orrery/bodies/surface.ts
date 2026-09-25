@@ -1,10 +1,11 @@
 /* Shader patches on three's lit materials: limb darkening for thick
-   atmospheres, city lights on Earth's night side, and ring shadows on the
-   planet. All work in world space against the Sun's live position. */
+   atmospheres, city lights on Earth's night side, ring shadows on the planet,
+   and eclipses. All work in world space against the Sun's live position. */
 import {
-  AdditiveBlending, Color, FrontSide, ShaderMaterial, type MeshPhongMaterial, type MeshStandardMaterial,
+  AdditiveBlending, Color, FrontSide, ShaderMaterial, type MeshLambertMaterial, type MeshPhongMaterial, type MeshStandardMaterial,
   type Texture, type Vector3,
 } from 'three';
+import { ECLIPSE_APPLY, ECLIPSE_PARS, type EclipseUniforms } from './eclipse';
 import type { RingUniforms } from './rings';
 
 export interface SurfaceOptions {
@@ -13,10 +14,11 @@ export interface SurfaceOptions {
   limb?: number;
   night?: { map: Texture; gain: number };
   rings?: RingUniforms;
+  eclipse?: EclipseUniforms;
 }
 
-export function patchSurface(mat: MeshStandardMaterial | MeshPhongMaterial, opts: SurfaceOptions): void {
-  const key = `surface:${opts.limb ?? '-'}:${opts.night ? 'n' : '-'}:${opts.rings ? 'r' : '-'}`;
+export function patchSurface(mat: MeshStandardMaterial | MeshPhongMaterial | MeshLambertMaterial, opts: SurfaceOptions): void {
+  const key = `surface:${opts.limb ?? '-'}:${opts.night ? 'n' : '-'}:${opts.rings ? 'r' : '-'}:${opts.eclipse ? 'e' : '-'}`;
   mat.customProgramCacheKey = () => key;
   mat.onBeforeCompile = shader => {
     shader.uniforms.uSun = opts.sun;
@@ -25,6 +27,7 @@ export function patchSurface(mat: MeshStandardMaterial | MeshPhongMaterial, opts
       shader.uniforms.uNightGain = { value: opts.night.gain };
     }
     if (opts.rings) Object.assign(shader.uniforms, opts.rings);
+    if (opts.eclipse) Object.assign(shader.uniforms, opts.eclipse);
     shader.uniforms.uLimb = { value: opts.limb ?? 1 };
 
     shader.vertexShader = shader.vertexShader
@@ -34,6 +37,7 @@ export function patchSurface(mat: MeshStandardMaterial | MeshPhongMaterial, opts
     let pars = 'varying vec3 vWPos;\nvarying vec3 vWNormal;\nuniform vec3 uSun;\nuniform float uLimb;\n';
     if (opts.night) pars += 'uniform sampler2D uNight;\nuniform float uNightGain;\n';
     if (opts.rings) pars += 'uniform sampler2D uProfile;\nuniform vec3 uCenter, uNormal;\nuniform float uInner, uOuter;\n';
+    if (opts.eclipse) pars += ECLIPSE_PARS;
 
     let emissive = '';
     if (opts.night) emissive = `
@@ -64,6 +68,7 @@ export function patchSurface(mat: MeshStandardMaterial | MeshPhongMaterial, opts
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\n' + pars)
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>' + emissive)
+      .replace('#include <aomap_fragment>', '#include <aomap_fragment>' + (opts.eclipse ? ECLIPSE_APPLY : ''))
       .replace('#include <opaque_fragment>', post + '\n#include <opaque_fragment>');
   };
   mat.needsUpdate = true;

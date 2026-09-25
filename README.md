@@ -18,8 +18,12 @@ The solar system in Three.js, positions computed for real time.
 - All 458 moons in JPL's satellite tables are placed from their mean elements
   for the sim date, in their own reference planes (ecliptic, planet equator or
   local Laplace plane): large and notable moons as spheres, the rest as dots.
-  Earth's Moon uses the leading terms of Meeus ch. 47, enough to land eclipses
-  on the right day.
+  Earth's Moon uses the main terms of Meeus ch. 47 (about 0.01°), rotated to
+  J2000 like the planets, so eclipse contacts land within a few minutes.
+- Eclipses are shaded per pixel from the fraction of the Sun's disk the
+  occluding body hides, computed in true proportions, so umbra and penumbra
+  are right in either scale mode. Earth's shadow is enlarged 2% for its
+  atmosphere, and the umbra passes a dim red.
 - Saturn's rings use measured ring and gap radii; opacity follows optical
   depth along the line of sight and brightness a thin-layer scattering model,
   with analytic shadows between rings and planet.
@@ -47,6 +51,9 @@ The solar system in Three.js, positions computed for real time.
   planet for display, not photometric. Earth: NASA Blue Marble with relief,
   ocean shine, clouds and city lights on the night side; Tashkent is marked.
   Pluto's unimaged southern hemisphere is filled with neutral terrain.
+- Partial eclipse shading is deepened so it reads on screen; where it falls
+  stays exact. In true scale the Sun's glare keeps a minimum on-screen size,
+  as a camera would record it.
 - Ring optical depths are a piecewise approximation of published occultation
   profiles; the fine ringlet texture is procedural.
 - In compressed mode, each moon system keeps true proportions out to three

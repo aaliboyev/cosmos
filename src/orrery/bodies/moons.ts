@@ -10,6 +10,7 @@ import { AU_KM, type Vec3 } from '../../physics/ephemeris';
 import { lunarPosKm } from '../../physics/moon';
 import { moonPosKm, moonsOf, orbitPointKm, type MoonElements } from '../../physics/moons';
 import { AU_SCENE, eclipticToScene } from '../scale';
+import { eclipseUniforms, type EclipseUniforms } from './eclipse';
 import { atmosphereMaterial, patchSurface } from './surface';
 import moonMapUrl from '../../assets/planets/moon.webp';
 
@@ -35,8 +36,12 @@ export interface MoonBody extends SphereMoon {
   mesh: Mesh<SphereGeometry, MeshStandardMaterial>;
   /** live world position, for the camera rig */
   world: Vector3;
+  /** true offset from the parent, km, scene axes */
+  offsetKm: Vector3;
   /** true distance from the parent */
   distKm: number;
+  /** Earth's shadow on the Moon */
+  eclipse: EclipseUniforms | null;
   elements: MoonElements | null;   // null: the Moon, which has its own theory
   orbit: LineLoop | null;
   orbitKm: Float32Array | null;
@@ -71,10 +76,12 @@ export function createMoonSystem(parent: string, group: Group, sun: { value: Vec
       roughness: 1, metalness: 0,
       color: info.name === 'Moon' ? new Color(1, 1, 1) : new Color(info.color).multiplyScalar(info.hazy ? 0.45 : 1.25),
     });
+    // Earth's shadow grows ~2% from its atmosphere (Danjon); the umbra keeps a dim red
+    const eclipse = info.name === 'Moon' ? eclipseUniforms(PARENT_EQ_KM.Earth * 1.02, new Color(0.16, 0.05, 0.02), 2.5) : null;
     if (info.hazy) patchSurface(mat, { sun, limb: 0.35 });
+    if (eclipse) patchSurface(mat, { sun, eclipse });
     const mesh = new Mesh(sphereGeo, mat);
     mesh.userData.body = info.name;
-    if (info.name === 'Moon') { mesh.castShadow = true; mesh.receiveShadow = true; }
     group.add(mesh);
     if (info.name === 'Titan') {
       const haze = new Mesh(sphereGeo, atmosphereMaterial(sun, '#e0a050', 1.1, 2));
@@ -98,7 +105,7 @@ export function createMoonSystem(parent: string, group: Group, sun: { value: Vec
       orbit.visible = false;
       group.add(orbit);
     }
-    return { ...info, mesh, world: new Vector3(), distKm: 0, elements: el, orbit, orbitKm };
+    return { ...info, mesh, world: new Vector3(), offsetKm: new Vector3(), distKm: 0, eclipse, elements: el, orbit, orbitKm };
   });
 
   const sphereNames = new Set(spheres.map(s => s.name));
@@ -130,6 +137,7 @@ export function createMoonSystem(parent: string, group: Group, sun: { value: Vec
       if (m.elements) moonPosKm(m.elements, jd, km);
       else { const l = lunarPosKm(T); km.x = l.x; km.y = l.y; km.z = l.z; }
       m.distKm = Math.hypot(km.x, km.y, km.z);
+      eclipticToScene(km, m.offsetKm);
       place(km, m.mesh.position, parentR, parentVisEq, trueScale);
       const r = trueScale ? m.radiusKm * kmToScene : Math.max(0.55 * Math.sqrt(m.radiusKm / 2000), 0.06);
       m.mesh.scale.setScalar(r);

@@ -1,6 +1,6 @@
 /* Renderer, scene assembly and the frame loop. Reads state every frame; writes
    only sim time and the selected body's live distance. */
-import { AmbientLight, PCFShadowMap, PerspectiveCamera, Raycaster, Scene, Vector2, Vector3 } from 'three';
+import { AmbientLight, PerspectiveCamera, Raycaster, Scene, Vector2, Vector3 } from 'three';
 import { SUN } from '../data/bodies';
 import { centuries } from '../physics/time';
 import { createBelt } from './belt';
@@ -38,8 +38,6 @@ export function startOrrery(canvas: HTMLCanvasElement): void {
   // log depth: one buffer spans a close-up of Phobos and the whole true-scale system
   const stage = createStage(canvas, camera);
   const { renderer, perf } = stage;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = PCFShadowMap;
 
   // faint neutral fill: night sides read as near-black, not blue-grey
   scene.add(new AmbientLight(0xffffff, 0.035 * Math.PI));

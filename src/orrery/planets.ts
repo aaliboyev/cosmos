@@ -7,11 +7,12 @@ import {
 } from 'three';
 import { BODIES, type PlanetInfo } from '../data/bodies';
 import { SATURN_RINGS, URANUS_RINGS, type RingSystem } from '../data/rings';
-import { bodyPosAU } from '../physics/ephemeris';
+import { AU_KM, bodyPosAU } from '../physics/ephemeris';
 import { orientation } from '../physics/rotation';
 import { createMoonSystem, type MoonBody, type MoonSystem } from './bodies/moons';
 import { basisToScene } from './bodies/orient';
 import { createRings, ringProfileTexture, type RingUniforms, type Rings } from './bodies/rings';
+import { eclipseUniforms, type EclipseUniforms } from './bodies/eclipse';
 import { atmosphereMaterial, patchSurface } from './bodies/surface';
 import { distScene, eclipticToScene, isTrueScale, trueRadius } from './scale';
 import { selected, toggles } from './state';
@@ -68,6 +69,8 @@ export interface Planet extends PlanetInfo {
   eqKm: number;      // equatorial radius
   clouds?: Mesh;
   moonLight?: PointLight;
+  /** the Moon's shadow on Earth */
+  eclipse?: EclipseUniforms;
 }
 
 export interface FrameContext {
@@ -192,6 +195,7 @@ export function createPlanets(scene: Scene): Planets {
         p.moonLight.position.copy(moon.world);
         p.moonLight.intensity = 0.35 * Math.PI * (1 - cosE) / 2;
       }
+      if (p.eclipse) updateEclipses(p, pos, eq);
 
       // true-scale marker: a dot while the planet is sub-pixel, gone once it resolves
       const px = eq / Math.max(camera.position.distanceTo(p.group.position), 1e-9) * pxPerUnit;
@@ -201,6 +205,28 @@ export function createPlanets(scene: Scene): Planets {
     }
   }
 
+  const sunKm = new Vector3();
+  // true geometry in 1000 km: Sun from Earth, Moon from Earth
+  function updateEclipses(earth: Planet, earthAU: { x: number; y: number; z: number }, earthR: number) {
+    const moon = earth.moonSystem.spheres[0];
+    eclipticToScene(earthAU, sunKm).multiplyScalar(-AU_KM / 1000);
+    const toMoon = moon.offsetKm;
+
+    const onMoon = moon.eclipse!;
+    onMoon.uEclCenter.value.copy(moon.world);
+    onMoon.uEclR.value = moon.mesh.scale.x;
+    onMoon.uEclRecv.value.copy(toMoon).multiplyScalar(1 / 1000);
+    onMoon.uEclRecvR.value = moon.radiusKm / 1000;
+    onMoon.uEclSun.value.copy(sunKm);
+
+    const onEarth = earth.eclipse!;
+    onEarth.uEclCenter.value.copy(earth.group.position);
+    onEarth.uEclR.value = earthR;
+    onEarth.uEclRecv.value.copy(toMoon).multiplyScalar(-1 / 1000);
+    onEarth.uEclRecvR.value = earth.eqKm / 1000;
+    onEarth.uEclSun.value.copy(sunKm).addScaledVector(toMoon, -1 / 1000);
+  }
+
   return { list, byName, meshes: [...list.map(p => p.mesh), ...moonBodies.map(m => m.mesh)], moonBodies, update };
 }
 
@@ -208,7 +234,8 @@ export function createPlanets(scene: Scene): Planets {
 function setupEarth(scene: Scene, e: Planet, sun: { value: Vector3 }) {
   const mat = e.mesh.material as MeshPhongMaterial;
   const night = colorMap(earthNightUrl);
-  patchSurface(mat, { sun, night: { map: night, gain: 1.6 } });
+  e.eclipse = eclipseUniforms(1737.4, new Color(0, 0, 0), 1, 0.75);
+  patchSurface(mat, { sun, night: { map: night, gain: 1.6 }, eclipse: e.eclipse });
 
   const img = new Image();
   img.onload = () => {
@@ -230,14 +257,13 @@ function setupEarth(scene: Scene, e: Planet, sun: { value: Vector3 }) {
   mat.normalMap = loader.load(earthNormalUrl);
   mat.normalScale = new Vector2(0.85, 0.85);
   mat.specularMap = loader.load(earthSpecularUrl);
-  e.mesh.castShadow = true;      // lunar eclipses
-  e.mesh.receiveShadow = true;   // solar eclipse shadow spot
 
   e.moonLight = new PointLight(0xbfd4ff, 0, 60, 0);
   scene.add(e.moonLight);
 
   const clouds = new Mesh(new SphereGeometry(1.008, 96, 48),
     new MeshLambertMaterial({ map: colorMap(earthCloudsUrl), transparent: true, opacity: 0.55, depthWrite: false }));
+  patchSurface(clouds.material, { sun, eclipse: e.eclipse });
   e.mesh.add(clouds);
   e.clouds = clouds;
   const shell = new Mesh(e.mesh.geometry, atmosphereMaterial(sun, '#6aa6ff', 1.1, 3.2));

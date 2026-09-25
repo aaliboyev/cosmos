@@ -77,11 +77,6 @@ export function createSun(scene: Scene): Sun {
 
   // decay 0: the light carries to Neptune undimmed, like the original look
   const light = new PointLight(0xfff2dd, 2.4 * Math.PI, 0, 0);
-  light.castShadow = true;                     // eclipses: Moon↔Earth only
-  light.shadow.mapSize.set(1024, 1024);
-  light.shadow.camera.near = 10;
-  light.shadow.camera.far = 200;
-  light.shadow.bias = -0.004;
   scene.add(light);
 
   const basis = new Matrix4(), spin = new Quaternion(), yAxis = new Vector3(0, 1, 0);
